@@ -25,10 +25,23 @@ const defaultTheme = getThemeMeta(DEFAULT_THEME);
 export const metadata: Metadata = {
   title: "Just Another Todo",
   description: "Analytics-forward reminders with shared lists and points",
+  applicationName: "Just Another Todo",
+  manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "Just Another Todo",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  formatDetection: {
+    telephone: false,
   },
 };
 

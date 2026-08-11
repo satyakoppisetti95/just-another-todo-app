@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { GlassPanel } from "@/components/GlassPanel";
 import { Sidebar, FolderListItem } from "@/components/Sidebar";
 import { NewFolderSheet } from "@/components/NewFolderSheet";
+import { AddToHomeScreenTip } from "@/components/AddToHomeScreenTip";
 
 function isHomePath(pathname: string) {
   return pathname === "/lists" || pathname === "/";
@@ -238,6 +239,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           refresh();
         }}
       />
+      <AddToHomeScreenTip />
     </div>
   );
 }
