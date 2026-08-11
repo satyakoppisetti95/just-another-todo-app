@@ -7,12 +7,15 @@ import { User } from "@/models/User";
 import { canEdit, canView, getFolderAccess } from "@/lib/permissions";
 import { logActivity } from "@/lib/analytics";
 import { DEFAULT_POINTS } from "@/lib/constants";
+import { serializeRecurrence } from "@/lib/recurrence";
+import { normalizeRecurrence, recurrenceSchema } from "@/lib/recurrenceSchema";
 
 const createSchema = z.object({
   title: z.string().min(1).max(200),
   notes: z.string().max(2000).optional(),
   points: z.number().int().min(10).max(100).optional(),
   dueAt: z.union([z.string().min(1), z.null()]).optional(),
+  recurrence: recurrenceSchema.optional(),
 });
 
 export async function GET(
@@ -51,6 +54,7 @@ export async function GET(
       notes: t.notes,
       points: t.points,
       dueAt: t.dueAt ?? null,
+      recurrence: serializeRecurrence(t.recurrence ?? null),
       completed: t.completed,
       createdBy: t.createdBy.toString(),
       createdByName: nameMap.get(t.createdBy.toString()) ?? "",
@@ -86,13 +90,34 @@ export async function POST(
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
+  let recurrence = null;
+  try {
+    if (parsed.data.recurrence !== undefined) {
+      recurrence = normalizeRecurrence(parsed.data.recurrence);
+    }
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Invalid recurrence" },
+      { status: 400 }
+    );
+  }
+
+  const dueAt = parsed.data.dueAt ? new Date(parsed.data.dueAt) : null;
+  if (recurrence && !dueAt) {
+    return NextResponse.json(
+      { error: "Due date/time is required for recurring reminders" },
+      { status: 400 }
+    );
+  }
+
   const todo = await Todo.create({
     folderId: folder._id,
     createdBy: userId,
     title: parsed.data.title,
     notes: parsed.data.notes ?? "",
     points: parsed.data.points ?? DEFAULT_POINTS,
-    dueAt: parsed.data.dueAt ? new Date(parsed.data.dueAt) : null,
+    dueAt,
+    recurrence,
   });
 
   await logActivity(userId, "todo_created", {
@@ -117,6 +142,7 @@ export async function POST(
     notes: todo.notes,
     points: todo.points,
     dueAt: todo.dueAt ?? null,
+    recurrence: serializeRecurrence(todo.recurrence ?? null),
     completed: false,
     createdBy: userId,
     createdAt: todo.createdAt,

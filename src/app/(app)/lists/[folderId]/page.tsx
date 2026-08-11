@@ -4,7 +4,7 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { TodoRow, TodoItem } from "@/components/TodoRow";
 import { ShareSheet } from "@/components/ShareSheet";
-import { EditTodoSheet } from "@/components/EditTodoSheet";
+import { EditTodoSheet, type EditTodoPatch } from "@/components/EditTodoSheet";
 import { CelebrationModal } from "@/components/CelebrationModal";
 import { notifyStatsChanged } from "@/lib/events";
 import { useConfirm } from "@/components/ModalProvider";
@@ -42,6 +42,8 @@ export default function FolderDetailPage() {
   // Keep items completed during this visit visible (strikethrough + undo)
   // until the user leaves the list. Fresh visits only show open items.
   const sessionDoneIds = useRef<Set<string>>(new Set());
+  // Recurring todos that advanced on complete — allow undoing last occurrence
+  const sessionOccurrenceUndoIds = useRef<Set<string>>(new Set());
 
   const canEdit = folder?.role === "owner" || folder?.role === "collaborator";
   const isOwner = folder?.role === "owner";
@@ -65,7 +67,15 @@ export default function FolderDetailPage() {
         const list = (t.todos ?? []) as TodoItem[];
         setFolder(f);
         setTodos(
-          list.filter((todo) => !todo.completed || sessionDoneIds.current.has(todo.id))
+          list
+            .filter(
+              (todo) =>
+                !todo.completed || sessionDoneIds.current.has(todo.id)
+            )
+            .map((todo) => ({
+              ...todo,
+              canUndoOccurrence: sessionOccurrenceUndoIds.current.has(todo.id),
+            }))
         );
       } finally {
         if (!opts?.silent) setLoading(false);
@@ -76,6 +86,7 @@ export default function FolderDetailPage() {
 
   useEffect(() => {
     sessionDoneIds.current = new Set();
+    sessionOccurrenceUndoIds.current = new Set();
     load();
   }, [load]);
 
@@ -101,21 +112,31 @@ export default function FolderDetailPage() {
   }
 
   async function toggle(id: string, completed: boolean) {
-    if (completed) sessionDoneIds.current.add(id);
-    else sessionDoneIds.current.delete(id);
-
     const previous = todos.find((t) => t.id === id);
-    setTodos((prev) =>
-      prev.map((t) =>
-        t.id === id
-          ? {
-              ...t,
-              completed,
-              completedAt: completed ? new Date().toISOString() : null,
-            }
-          : t
-      )
-    );
+    const isRecurring = !!previous?.recurrence;
+
+    if (completed) {
+      if (!isRecurring) sessionDoneIds.current.add(id);
+    } else {
+      sessionDoneIds.current.delete(id);
+      sessionOccurrenceUndoIds.current.delete(id);
+    }
+
+    // Optimistic: one-shot completes as done; recurring stays open visually until server responds
+    if (!isRecurring || !completed) {
+      setTodos((prev) =>
+        prev.map((t) =>
+          t.id === id
+            ? {
+                ...t,
+                completed,
+                completedAt: completed ? new Date().toISOString() : null,
+                canUndoOccurrence: false,
+              }
+            : t
+        )
+      );
+    }
 
     const res = await fetch(`/api/folders/${folderId}/todos/${id}`, {
       method: "PATCH",
@@ -123,9 +144,10 @@ export default function FolderDetailPage() {
       body: JSON.stringify({ completed }),
     });
     if (!res.ok) {
-      // Roll back optimistic UI
       if (completed) sessionDoneIds.current.delete(id);
-      else sessionDoneIds.current.add(id);
+      else if (previous?.canUndoOccurrence) {
+        sessionOccurrenceUndoIds.current.add(id);
+      }
       if (previous) {
         setTodos((prev) => prev.map((t) => (t.id === id ? previous : t)));
       } else {
@@ -133,7 +155,8 @@ export default function FolderDetailPage() {
       }
       return;
     }
-    // Trust server totals — avoids optimistic delta racing with refresh
+
+    const data = await res.json();
     notifyStatsChanged();
 
     if (completed && previous) {
@@ -143,14 +166,40 @@ export default function FolderDetailPage() {
         title: previous.title,
       });
     }
+
+    if (completed && isRecurring && !data.completed) {
+      sessionOccurrenceUndoIds.current.add(id);
+      setTodos((prev) =>
+        prev.map((t) =>
+          t.id === id
+            ? {
+                ...t,
+                ...mapTodoResponse(data, previous),
+                completed: false,
+                canUndoOccurrence: true,
+              }
+            : t
+        )
+      );
+    } else if (completed && data.completed) {
+      sessionDoneIds.current.add(id);
+      setTodos((prev) =>
+        prev.map((t) =>
+          t.id === id
+            ? {
+                ...t,
+                ...mapTodoResponse(data, previous),
+                canUndoOccurrence: false,
+              }
+            : t
+        )
+      );
+    } else {
+      await load({ silent: true });
+    }
   }
 
-  async function saveEdit(patch: {
-    title: string;
-    notes: string;
-    points: number;
-    dueAt: string | null;
-  }) {
+  async function saveEdit(patch: EditTodoPatch) {
     if (!editing) return;
     const res = await fetch(`/api/folders/${folderId}/todos/${editing.id}`, {
       method: "PATCH",
@@ -412,4 +461,24 @@ function LeaveIcon() {
       <path d="m7 8-4 4 4 4" />
     </svg>
   );
+}
+
+function mapTodoResponse(
+  data: Partial<TodoItem> & { id?: string },
+  previous?: TodoItem
+): TodoItem {
+  return {
+    id: data.id ?? previous?.id ?? "",
+    title: data.title ?? previous?.title ?? "",
+    notes: data.notes ?? previous?.notes ?? "",
+    points: data.points ?? previous?.points ?? 10,
+    dueAt: data.dueAt !== undefined ? data.dueAt : previous?.dueAt ?? null,
+    recurrence:
+      data.recurrence !== undefined ? data.recurrence : previous?.recurrence ?? null,
+    completed: data.completed ?? previous?.completed ?? false,
+    createdByName: previous?.createdByName,
+    completedByName: data.completedByName ?? previous?.completedByName ?? null,
+    createdAt: data.createdAt ?? previous?.createdAt ?? new Date().toISOString(),
+    completedAt: data.completedAt ?? null,
+  };
 }

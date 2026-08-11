@@ -1,6 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { formatRecurrenceLabel } from "@/lib/recurrence";
+
+export type TodoRecurrence = {
+  frequency: "daily" | "weekly" | "monthly";
+  interval: number;
+  byWeekday?: number[];
+  endOn: string | null;
+};
 
 export type TodoItem = {
   id: string;
@@ -8,11 +16,14 @@ export type TodoItem = {
   notes: string;
   points: number;
   dueAt?: string | null;
+  recurrence?: TodoRecurrence | null;
   completed: boolean;
   createdByName?: string;
   completedByName?: string | null;
   createdAt: string;
   completedAt?: string | null;
+  /** Client-only: allow undoing last recurring occurrence */
+  canUndoOccurrence?: boolean;
 };
 
 function formatDue(iso: string) {
@@ -54,12 +65,18 @@ export function TodoRow({
 }) {
   const [busy, setBusy] = useState(false);
   const overdue = todo.dueAt ? isOverdue(todo.dueAt, todo.completed) : false;
+  const showUndo = todo.completed || !!todo.canUndoOccurrence;
+  const repeatLabel = formatRecurrenceLabel(todo.recurrence ?? null);
 
   async function toggle() {
     if (!canEdit || busy) return;
     setBusy(true);
     try {
-      await onToggle(todo.id, !todo.completed);
+      if (todo.canUndoOccurrence && !todo.completed) {
+        await onToggle(todo.id, false);
+      } else {
+        await onToggle(todo.id, !todo.completed);
+      }
     } finally {
       setBusy(false);
     }
@@ -75,7 +92,7 @@ export function TodoRow({
         type="button"
         onClick={toggle}
         disabled={!canEdit || busy}
-        aria-label={todo.completed ? "Undo complete" : "Mark complete"}
+        aria-label={showUndo ? "Undo complete" : "Mark complete"}
         className={`mt-0.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 transition-transform duration-200 active:scale-90 ${
           canEdit ? "cursor-pointer" : "cursor-default"
         } ${todo.completed ? "animate-[checkPop_0.28s_ease]" : ""}`}
@@ -118,6 +135,7 @@ export function TodoRow({
         ) : null}
         <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
           <span>{todo.points} pts</span>
+          {repeatLabel ? <span>· {repeatLabel}</span> : null}
           {todo.dueAt && !todo.completed ? (
             <span className={overdue ? "font-medium text-[#FF3B30]" : ""}>
               · {formatDue(todo.dueAt)}
@@ -130,7 +148,7 @@ export function TodoRow({
         </div>
       </div>
 
-      {canEdit && todo.completed ? (
+      {canEdit && showUndo ? (
         <button
           type="button"
           onClick={toggle}

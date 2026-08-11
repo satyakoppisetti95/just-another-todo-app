@@ -10,6 +10,7 @@ export interface IPointEvent {
   awardedBy: mongoose.Types.ObjectId;
   points: number;
   source: PointSource;
+  occurrenceKey?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -22,11 +23,13 @@ const PointEventSchema = new Schema<IPointEvent>(
     awardedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
     points: { type: Number, required: true },
     source: { type: String, enum: ["self", "peer"], required: true },
+    occurrenceKey: { type: String, default: null },
   },
   { timestamps: true }
 );
 
 PointEventSchema.index({ userId: 1, createdAt: -1 });
+PointEventSchema.index({ todoId: 1, occurrenceKey: 1 });
 
 export const PointEvent =
   models.PointEvent || model<IPointEvent>("PointEvent", PointEventSchema);
