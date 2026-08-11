@@ -107,7 +107,7 @@ export function ShareSheet({
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-[#007AFF] py-2.5 text-sm font-medium text-white disabled:opacity-60"
+              className="app-bg-accent w-full rounded-xl py-2.5 text-sm font-medium disabled:opacity-60"
             >
               {loading ? "Inviting…" : "Invite"}
             </button>

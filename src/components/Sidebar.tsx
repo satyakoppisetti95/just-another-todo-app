@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { PointsStrip } from "@/components/PointsStrip";
 
 export type FolderListItem = {
@@ -34,16 +34,16 @@ export function Sidebar({
   return (
     <aside className="flex h-full min-h-0 w-full flex-col gap-5 px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] md:w-[280px] md:shrink-0 md:pt-4">
       <div className="shrink-0">
-        <h1 className="font-[family-name:var(--font-display)] text-[28px] font-semibold tracking-tight text-slate-900 md:text-2xl">
+        <h1 className="font-[family-name:var(--font-display)] text-[28px] font-semibold tracking-tight text-[color:var(--foreground)] md:text-2xl">
           Just Another Todo
         </h1>
-        <p className="mt-0.5 text-sm text-slate-500 md:text-xs">
+        <p className="mt-0.5 text-sm text-[color:var(--muted)] md:text-xs">
           {data?.user?.name ?? "Your reminders"}
         </p>
       </div>
 
       <div className="shrink-0">
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[color:var(--muted)]">
           Today
         </p>
         <PointsStrip {...today} />
@@ -55,14 +55,14 @@ export function Sidebar({
             <FolderLink key={f.id} folder={f} active={pathname === `/lists/${f.id}`} />
           ))}
           {owned.length === 0 && (
-            <p className="px-2 py-2 text-sm text-slate-400">No lists yet</p>
+            <p className="px-2 py-2 text-sm text-[color:var(--muted)]">No lists yet</p>
           )}
           <button
             type="button"
             onClick={onNewList}
-            className="mt-1 flex w-full items-center gap-3 rounded-2xl px-2.5 py-2.5 text-left text-[15px] font-medium text-[#007AFF] transition active:bg-white/50 md:rounded-xl md:py-2 md:text-sm"
+            className="app-text-accent mt-1 flex w-full items-center gap-3 rounded-2xl px-2.5 py-2.5 text-left text-[15px] font-medium transition active:bg-[color:var(--glass)] md:rounded-xl md:py-2 md:text-sm"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#007AFF]/15 text-lg leading-none md:h-7 md:w-7 md:rounded-lg md:text-base">
+            <span className="app-bg-accent-soft app-text-accent flex h-8 w-8 items-center justify-center rounded-[10px] text-lg leading-none md:h-7 md:w-7 md:rounded-lg md:text-base">
               +
             </span>
             New List
@@ -74,7 +74,9 @@ export function Sidebar({
             <FolderLink key={f.id} folder={f} active={pathname === `/lists/${f.id}`} />
           ))}
           {shared.length === 0 && (
-            <p className="px-2 py-2 text-sm text-slate-400">Nothing shared with you</p>
+            <p className="px-2 py-2 text-sm text-[color:var(--muted)]">
+              Nothing shared with you
+            </p>
           )}
         </Section>
 
@@ -95,16 +97,13 @@ export function Sidebar({
             label="Friends"
             badge={pendingFriends}
           />
+          <NavLink
+            href="/profile"
+            active={pathname.startsWith("/profile")}
+            label="Profile"
+          />
         </Section>
       </nav>
-
-      <button
-        type="button"
-        onClick={() => signOut({ callbackUrl: "/login" })}
-        className="shrink-0 rounded-2xl px-3 py-3 text-left text-[15px] text-slate-500 transition active:bg-white/50 md:rounded-xl md:py-2 md:text-sm"
-      >
-        Sign out
-      </button>
     </aside>
   );
 }
@@ -112,7 +111,7 @@ export function Sidebar({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-1.5 px-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+      <p className="mb-1.5 px-2 text-[11px] font-semibold uppercase tracking-wider text-[color:var(--muted)]">
         {title}
       </p>
       <div className="flex flex-col gap-0.5">{children}</div>
@@ -131,7 +130,9 @@ function FolderLink({
     <Link
       href={`/lists/${folder.id}`}
       className={`flex items-center gap-3 rounded-2xl px-2.5 py-2.5 text-[15px] transition active:scale-[0.99] md:rounded-xl md:py-2 md:text-sm ${
-        active ? "bg-white/70 shadow-sm" : "active:bg-white/40 md:hover:bg-white/40"
+        active
+          ? "bg-[color:var(--glass-strong)] shadow-sm"
+          : "active:bg-[color:var(--glass)] md:hover:bg-[color:var(--glass)]"
       }`}
     >
       <span
@@ -140,15 +141,15 @@ function FolderLink({
       >
         {folder.isPrivate ? <LockIcon /> : <ListIcon />}
       </span>
-      <span className="min-w-0 flex-1 truncate font-medium text-slate-800">
+      <span className="min-w-0 flex-1 truncate font-medium text-[color:var(--foreground)]">
         {folder.name}
       </span>
       {folder.incompleteCount > 0 && (
-        <span className="text-sm tabular-nums text-slate-400 md:text-xs">
+        <span className="text-sm tabular-nums text-[color:var(--muted)] md:text-xs">
           {folder.incompleteCount}
         </span>
       )}
-      <ChevronRight className="text-slate-300 md:hidden" />
+      <ChevronRight className="text-[color:var(--muted)] opacity-50 md:hidden" />
     </Link>
   );
 }
@@ -169,18 +170,18 @@ function NavLink({
       href={href}
       className={`flex items-center justify-between rounded-2xl px-2.5 py-2.5 text-[15px] font-medium transition active:scale-[0.99] md:rounded-xl md:py-2 md:text-sm ${
         active
-          ? "bg-white/70 text-slate-900 shadow-sm"
-          : "text-slate-600 active:bg-white/40 md:hover:bg-white/40"
+          ? "bg-[color:var(--glass-strong)] text-[color:var(--foreground)] shadow-sm"
+          : "text-[color:var(--muted)] active:bg-[color:var(--glass)] md:hover:bg-[color:var(--glass)]"
       }`}
     >
       <span>{label}</span>
       <span className="flex items-center gap-2">
         {badge > 0 && (
-          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#FF3B30] px-1.5 text-[11px] font-semibold text-white">
+          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[color:var(--danger)] px-1.5 text-[11px] font-semibold text-white">
             {badge}
           </span>
         )}
-        <ChevronRight className="text-slate-300 md:hidden" />
+        <ChevronRight className="text-[color:var(--muted)] opacity-50 md:hidden" />
       </span>
     </Link>
   );

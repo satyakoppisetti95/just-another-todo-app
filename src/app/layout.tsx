@@ -24,12 +24,32 @@ export const metadata: Metadata = {
   description: "Analytics-forward reminders with shared lists and points",
 };
 
+const themeInitScript = `
+(function(){
+  try {
+    var allowed = ['sky','midnight','forest','ocean','sand','rose'];
+    var t = localStorage.getItem('jata-theme');
+    document.documentElement.setAttribute(
+      'data-theme',
+      allowed.indexOf(t) >= 0 ? t : 'sky'
+    );
+  } catch (e) {
+    document.documentElement.setAttribute('data-theme', 'sky');
+  }
+})();
+`;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
+      data-theme="sky"
       className={`${geistSans.variable} ${geistMono.variable} ${display.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className="min-h-full">
         <Providers>{children}</Providers>
       </body>

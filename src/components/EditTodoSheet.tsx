@@ -182,7 +182,7 @@ export function EditTodoSheet({
               <button
                 type="submit"
                 disabled={loading}
-                className="rounded-xl bg-[#007AFF] px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+                className="app-bg-accent rounded-xl px-4 py-2 text-sm font-medium disabled:opacity-60"
               >
                 {loading ? "Saving…" : "Save"}
               </button>

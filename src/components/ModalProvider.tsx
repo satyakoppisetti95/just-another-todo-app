@@ -80,7 +80,9 @@ export function ModalProvider({ children }: { children: ReactNode }) {
                 onClick={() => close(true)}
                 className="rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-sm"
                 style={{
-                  backgroundColor: options.danger ? "#FF3B30" : "#007AFF",
+                  backgroundColor: options.danger
+                    ? "var(--danger)"
+                    : "var(--accent)",
                 }}
               >
                 {options.confirmLabel ?? "Confirm"}

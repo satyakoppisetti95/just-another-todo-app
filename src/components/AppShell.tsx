@@ -173,23 +173,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div
           key={overlayKey}
           className="fixed inset-0 z-40 flex flex-col animate-slide-from-right"
-          style={{
-            background:
-              "linear-gradient(180deg, #dbe7f4 0%, #eef3f9 40%, #e8eef6 100%)",
-          }}
+          style={{ background: "var(--bg-surface)" }}
         >
-          <header className="flex shrink-0 items-center gap-1 border-b border-white/50 bg-white/60 px-1 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-xl">
+          <header
+            className="flex shrink-0 items-center gap-1 border-b px-1 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-xl"
+            style={{
+              backgroundColor: "var(--glass-strong)",
+              borderColor: "var(--border)",
+            }}
+          >
             <button
               type="button"
               onClick={goBack}
-              className="flex items-center gap-0.5 rounded-xl px-2 py-2 text-[17px] font-medium text-[#007AFF] active:opacity-60"
+              className="app-text-accent flex items-center gap-0.5 rounded-xl px-2 py-2 text-[17px] font-medium active:opacity-60"
             >
               <ChevronLeft />
               {backLabel(pathname)}
             </button>
           </header>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
-            <div className="rounded-2xl border border-white/40 bg-white/50 p-4 shadow-[0_8px_32px_rgba(15,40,80,0.08)] backdrop-blur-2xl">
+            <div
+              className="rounded-2xl border p-4 shadow-[0_8px_32px_rgba(15,40,80,0.08)] backdrop-blur-2xl"
+              style={{
+                backgroundColor: "var(--glass)",
+                borderColor: "var(--border)",
+              }}
+            >
               {children}
             </div>
           </div>
@@ -199,11 +208,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Avoid flash on first paint before media query resolves */}
       {isDesktop === null && !home && (
         <main className="fixed inset-0 z-40 flex flex-col md:static md:z-auto md:min-w-0 md:flex-1 md:pl-2">
-          <header className="flex shrink-0 items-center border-b border-white/50 bg-white/60 px-1 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-xl md:hidden">
+          <header className="flex shrink-0 items-center border-b px-1 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-xl md:hidden"
+            style={{
+              backgroundColor: "var(--glass-strong)",
+              borderColor: "var(--border)",
+            }}
+          >
             <button
               type="button"
               onClick={goBack}
-              className="flex items-center gap-0.5 rounded-xl px-2 py-2 text-[17px] font-medium text-[#007AFF]"
+              className="app-text-accent flex items-center gap-0.5 rounded-xl px-2 py-2 text-[17px] font-medium"
             >
               <ChevronLeft />
               {backLabel(pathname)}

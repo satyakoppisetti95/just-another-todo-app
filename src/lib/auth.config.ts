@@ -24,15 +24,20 @@ export const authConfig = {
       if (pathname === "/") return true;
       return isLoggedIn;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
+        if (user.name) token.name = user.name;
+      }
+      if (trigger === "update" && session) {
+        if (typeof session.name === "string") token.name = session.name;
       }
       return token;
     },
     async session({ session, token }) {
-      if (session.user && token.id) {
-        session.user.id = token.id as string;
+      if (session.user) {
+        if (token.id) session.user.id = token.id as string;
+        if (token.name) session.user.name = token.name as string;
       }
       return session;
     },

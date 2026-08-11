@@ -50,15 +50,21 @@ export function Modal({
       <button
         type="button"
         aria-label="Close dialog"
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+        className="absolute inset-0 backdrop-blur-sm"
+        style={{ backgroundColor: "var(--overlay)" }}
         onClick={onClose}
       />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
-        className="relative w-full max-w-md animate-[slideUp_0.25s_ease] rounded-2xl border border-white/50 bg-white/90 p-5 shadow-2xl backdrop-blur-2xl"
-        style={{ zIndex: layer + 1 }}
+        className="relative w-full max-w-md animate-[slideUp_0.25s_ease] rounded-2xl border p-5 shadow-2xl backdrop-blur-2xl"
+        style={{
+          zIndex: layer + 1,
+          backgroundColor: "var(--modal-bg)",
+          borderColor: "var(--border)",
+          color: "var(--foreground)",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {children}
