@@ -12,6 +12,7 @@ import {
   nextCelebrationMessage,
   type CelebrationPayload,
 } from "@/lib/celebration";
+import { DEFAULT_POINTS, POINT_OPTIONS } from "@/lib/constants";
 
 type FolderMeta = {
   id: string;
@@ -31,7 +32,7 @@ export default function FolderDetailPage() {
   const [folder, setFolder] = useState<FolderMeta | null>(null);
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [title, setTitle] = useState("");
-  const [points, setPoints] = useState(1);
+  const [points, setPoints] = useState<number>(DEFAULT_POINTS);
   const [shareOpen, setShareOpen] = useState(false);
   const [editing, setEditing] = useState<TodoItem | null>(null);
   const [celebration, setCelebration] = useState<CelebrationPayload | null>(null);
@@ -88,7 +89,7 @@ export default function FolderDetailPage() {
     });
     if (res.ok) {
       setTitle("");
-      setPoints(1);
+      setPoints(DEFAULT_POINTS);
       window.dispatchEvent(
         new CustomEvent("jata:stats-delta", {
           detail: { points: 0, completions: 0, created: 1 },
@@ -254,15 +255,19 @@ export default function FolderDetailPage() {
             placeholder="New reminder"
             className="min-w-[200px] flex-1 rounded-xl border border-slate-200/70 bg-white/70 px-4 py-3 text-[15px] outline-none focus:ring-2 focus:ring-blue-500/25"
           />
-          <input
-            type="number"
-            min={0}
-            max={100}
+          <select
             value={points}
             onChange={(e) => setPoints(Number(e.target.value))}
-            className="w-20 rounded-xl border border-slate-200/70 bg-white/70 px-3 py-3 text-sm"
+            className="w-24 rounded-xl border border-slate-200/70 bg-white/70 px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500/25"
             title="Points"
-          />
+            aria-label="Points"
+          >
+            {POINT_OPTIONS.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
           <button
             type="submit"
             className="rounded-xl bg-[#007AFF] px-4 py-3 text-sm font-semibold text-white"
