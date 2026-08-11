@@ -68,17 +68,17 @@ export function TodoRow({
   return (
     <div
       className={`group flex items-start gap-3 border-b border-slate-200/60 px-4 py-3 transition-all duration-200 last:border-b-0 ${
-        todo.completed ? "opacity-55" : "opacity-100"
+        todo.completed ? "bg-black/[0.02]" : ""
       }`}
     >
       <button
         type="button"
         onClick={toggle}
         disabled={!canEdit || busy}
-        aria-label={todo.completed ? "Mark incomplete" : "Mark complete"}
+        aria-label={todo.completed ? "Undo complete" : "Mark complete"}
         className={`mt-0.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 transition-transform duration-200 active:scale-90 ${
           canEdit ? "cursor-pointer" : "cursor-default"
-        }`}
+        } ${todo.completed ? "animate-[checkPop_0.28s_ease]" : ""}`}
         style={{
           borderColor: color,
           backgroundColor: todo.completed ? color : "transparent",
@@ -99,30 +99,47 @@ export function TodoRow({
 
       <div className="min-w-0 flex-1">
         <div
-          className={`text-[15px] leading-snug text-slate-900 ${
-            todo.completed ? "line-through decoration-slate-400" : ""
+          className={`text-[15px] leading-snug ${
+            todo.completed
+              ? "text-slate-400 line-through decoration-slate-400 decoration-2"
+              : "text-slate-900"
           }`}
         >
           {todo.title}
         </div>
         {todo.notes ? (
-          <p className="mt-0.5 truncate text-xs text-slate-500">{todo.notes}</p>
+          <p
+            className={`mt-0.5 truncate text-xs text-slate-500 ${
+              todo.completed ? "line-through decoration-slate-300" : ""
+            }`}
+          >
+            {todo.notes}
+          </p>
         ) : null}
         <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
           <span>{todo.points} pts</span>
-          {todo.dueAt ? (
+          {todo.dueAt && !todo.completed ? (
             <span className={overdue ? "font-medium text-[#FF3B30]" : ""}>
               · {formatDue(todo.dueAt)}
             </span>
           ) : null}
-          {todo.createdByName ? <span>· by {todo.createdByName}</span> : null}
-          {todo.completed && todo.completedByName ? (
-            <span>· done by {todo.completedByName}</span>
+          {todo.createdByName && !todo.completed ? (
+            <span>· by {todo.createdByName}</span>
           ) : null}
+          {todo.completed ? <span>· completed</span> : null}
         </div>
       </div>
 
-      {canEdit && onEdit && (
+      {canEdit && todo.completed ? (
+        <button
+          type="button"
+          onClick={toggle}
+          disabled={busy}
+          className="app-text-accent mt-0.5 shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition hover:bg-white/70 disabled:opacity-60"
+        >
+          Undo
+        </button>
+      ) : canEdit && onEdit ? (
         <button
           type="button"
           aria-label="Edit reminder"
@@ -131,7 +148,7 @@ export function TodoRow({
         >
           <EditIcon />
         </button>
-      )}
+      ) : null}
     </div>
   );
 }
