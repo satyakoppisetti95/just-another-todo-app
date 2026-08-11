@@ -5,8 +5,13 @@ import { useParams, useRouter } from "next/navigation";
 import { TodoRow, TodoItem } from "@/components/TodoRow";
 import { ShareSheet } from "@/components/ShareSheet";
 import { EditTodoSheet } from "@/components/EditTodoSheet";
+import { CelebrationModal } from "@/components/CelebrationModal";
 import { notifyStatsChanged } from "@/lib/events";
 import { useConfirm } from "@/components/ModalProvider";
+import {
+  nextCelebrationMessage,
+  type CelebrationPayload,
+} from "@/lib/celebration";
 
 type FolderMeta = {
   id: string;
@@ -29,6 +34,7 @@ export default function FolderDetailPage() {
   const [points, setPoints] = useState(1);
   const [shareOpen, setShareOpen] = useState(false);
   const [editing, setEditing] = useState<TodoItem | null>(null);
+  const [celebration, setCelebration] = useState<CelebrationPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -128,6 +134,14 @@ export default function FolderDetailPage() {
     }
     // Trust server totals — avoids optimistic delta racing with refresh
     notifyStatsChanged();
+
+    if (completed && previous) {
+      setCelebration({
+        message: nextCelebrationMessage(),
+        points: previous.points,
+        title: previous.title,
+      });
+    }
   }
 
   async function saveEdit(patch: {
@@ -290,6 +304,11 @@ export default function FolderDetailPage() {
         onClose={() => setEditing(null)}
         onSave={saveEdit}
         onDelete={deleteEditing}
+      />
+
+      <CelebrationModal
+        celebration={celebration}
+        onClose={() => setCelebration(null)}
       />
     </div>
   );

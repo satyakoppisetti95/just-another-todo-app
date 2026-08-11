@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@lottiefiles/dotlottie-react": "^0.19.13",
     "bcryptjs": "^3.0.3",
     "mongoose": "^9.9.2",
     "next": "16.3.0",

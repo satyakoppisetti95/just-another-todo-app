@@ -244,3 +244,110 @@ body {
     animation: none;
   }
 }
+
+/* Celebration modal fallback (used until Lottie JSON is added) */
+@keyframes celebrateRingDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes celebrateCheckDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes celebrateConfettiPop {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.4) rotate(0deg);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx, 12px), var(--ty, -28px)) scale(1) rotate(160deg);
+  }
+}
+
+.celebrate-fallback .celebrate-ring {
+  stroke-dasharray: 120;
+  stroke-dashoffset: 120;
+}
+
+.celebrate-fallback .celebrate-check {
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  fill: none;
+}
+
+.celebrate-fallback.is-playing .celebrate-ring {
+  animation: celebrateRingDraw 0.45s ease forwards;
+}
+
+.celebrate-fallback.is-playing .celebrate-check {
+  animation: celebrateCheckDraw 0.35s ease 0.25s forwards;
+}
+
+.celebrate-confetti {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  opacity: 0;
+}
+
+.celebrate-fallback.is-playing .celebrate-confetti {
+  animation: celebrateConfettiPop 0.9s ease forwards;
+}
+
+.celebrate-confetti.c1 {
+  background: #ff3b30;
+  top: 28%;
+  left: 22%;
+  --tx: -18px;
+  --ty: -32px;
+  animation-delay: 0.15s;
+}
+.celebrate-confetti.c2 {
+  background: #34c759;
+  top: 22%;
+  right: 24%;
+  --tx: 20px;
+  --ty: -30px;
+  animation-delay: 0.2s;
+}
+.celebrate-confetti.c3 {
+  background: #007aff;
+  top: 48%;
+  left: 14%;
+  --tx: -28px;
+  --ty: -8px;
+  animation-delay: 0.25s;
+}
+.celebrate-confetti.c4 {
+  background: #ff9500;
+  top: 46%;
+  right: 16%;
+  --tx: 26px;
+  --ty: -6px;
+  animation-delay: 0.18s;
+}
+.celebrate-confetti.c5 {
+  background: #af52de;
+  bottom: 24%;
+  left: 30%;
+  --tx: -14px;
+  --ty: 22px;
+  animation-delay: 0.3s;
+}
+.celebrate-confetti.c6 {
+  background: #ff2d55;
+  bottom: 22%;
+  right: 28%;
+  --tx: 16px;
+  --ty: 24px;
+  animation-delay: 0.28s;
+}
