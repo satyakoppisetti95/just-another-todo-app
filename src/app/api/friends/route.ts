@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { z } from "zod";
 import { connectDB } from "@/lib/db";
 import { requireUser } from "@/lib/session";
@@ -9,15 +10,20 @@ const requestSchema = z.object({
   email: z.string().email(),
 });
 
+function oid(id: string) {
+  return new mongoose.Types.ObjectId(id);
+}
+
 export async function GET() {
   const authResult = await requireUser();
   if ("error" in authResult && authResult.error) return authResult.error;
   const { userId } = authResult as { userId: string };
+  const me = oid(userId);
 
   await connectDB();
 
   const friendships = await Friendship.find({
-    $or: [{ requesterId: userId }, { addresseeId: userId }],
+    $or: [{ requesterId: me }, { addresseeId: me }],
     status: { $in: ["pending", "accepted"] },
   }).lean();
 
@@ -30,14 +36,14 @@ export async function GET() {
   const friends = friendships
     .filter((f) => f.status === "accepted")
     .map((f) => {
-      const oid =
+      const otherId =
         f.requesterId.toString() === userId
           ? f.addresseeId.toString()
           : f.requesterId.toString();
-      const u = userMap.get(oid);
+      const u = userMap.get(otherId);
       return {
         friendshipId: f._id.toString(),
-        id: oid,
+        id: otherId,
         name: u?.name ?? "",
         email: u?.email ?? "",
       };
@@ -46,11 +52,11 @@ export async function GET() {
   const incoming = friendships
     .filter((f) => f.status === "pending" && f.addresseeId.toString() === userId)
     .map((f) => {
-      const oid = f.requesterId.toString();
-      const u = userMap.get(oid);
+      const otherId = f.requesterId.toString();
+      const u = userMap.get(otherId);
       return {
         friendshipId: f._id.toString(),
-        id: oid,
+        id: otherId,
         name: u?.name ?? "",
         email: u?.email ?? "",
       };
@@ -59,11 +65,11 @@ export async function GET() {
   const outgoing = friendships
     .filter((f) => f.status === "pending" && f.requesterId.toString() === userId)
     .map((f) => {
-      const oid = f.addresseeId.toString();
-      const u = userMap.get(oid);
+      const otherId = f.addresseeId.toString();
+      const u = userMap.get(otherId);
       return {
         friendshipId: f._id.toString(),
-        id: oid,
+        id: otherId,
         name: u?.name ?? "",
         email: u?.email ?? "",
       };
@@ -76,6 +82,7 @@ export async function POST(req: Request) {
   const authResult = await requireUser();
   if ("error" in authResult && authResult.error) return authResult.error;
   const { userId } = authResult as { userId: string };
+  const me = oid(userId);
 
   const body = await req.json();
   const parsed = requestSchema.safeParse(body);
@@ -84,9 +91,12 @@ export async function POST(req: Request) {
   }
 
   await connectDB();
-  const target = await User.findOne({ email: parsed.data.email.toLowerCase() });
+  const target = await User.findOne({ email: parsed.data.email.toLowerCase().trim() });
   if (!target) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "No account found with that email. They need to register first." },
+      { status: 404 }
+    );
   }
   if (target._id.toString() === userId) {
     return NextResponse.json({ error: "Cannot friend yourself" }, { status: 400 });
@@ -94,8 +104,8 @@ export async function POST(req: Request) {
 
   const existing = await Friendship.findOne({
     $or: [
-      { requesterId: userId, addresseeId: target._id },
-      { requesterId: target._id, addresseeId: userId },
+      { requesterId: me, addresseeId: target._id },
+      { requesterId: target._id, addresseeId: me },
     ],
   });
 
@@ -104,18 +114,29 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Already friends" }, { status: 409 });
     }
     if (existing.status === "pending") {
+      // If they already sent you a request, auto-accept
+      if (existing.addresseeId.toString() === userId) {
+        existing.status = "accepted";
+        await existing.save();
+        return NextResponse.json({
+          friendshipId: existing._id.toString(),
+          status: "accepted",
+        });
+      }
       return NextResponse.json({ error: "Request already pending" }, { status: 409 });
     }
-    const mongoose = await import("mongoose");
-    existing.requesterId = new mongoose.Types.ObjectId(userId);
+    existing.requesterId = me;
     existing.addresseeId = target._id;
     existing.status = "pending";
     await existing.save();
-    return NextResponse.json({ friendshipId: existing._id.toString(), status: "pending" });
+    return NextResponse.json({
+      friendshipId: existing._id.toString(),
+      status: "pending",
+    });
   }
 
   const friendship = await Friendship.create({
-    requesterId: userId,
+    requesterId: me,
     addresseeId: target._id,
     status: "pending",
   });

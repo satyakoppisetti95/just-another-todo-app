@@ -19,17 +19,21 @@ export function Sidebar({
   owned,
   shared,
   today,
+  pendingFriends = 0,
+  onNewList,
 }: {
   owned: FolderListItem[];
   shared: FolderListItem[];
   today: { points: number; completions: number; created: number };
+  pendingFriends?: number;
+  onNewList: () => void;
 }) {
   const pathname = usePathname();
   const { data } = useSession();
 
   return (
-    <aside className="flex h-full w-full flex-col gap-4 p-4 md:w-[280px] md:shrink-0">
-      <div>
+    <aside className="flex h-full min-h-0 w-full flex-col gap-4 p-4 md:w-[280px] md:shrink-0">
+      <div className="shrink-0">
         <h1 className="font-[family-name:var(--font-display)] text-2xl tracking-tight text-slate-900">
           Just Another Todo
         </h1>
@@ -38,14 +42,14 @@ export function Sidebar({
         </p>
       </div>
 
-      <div>
+      <div className="shrink-0">
         <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
           Today
         </p>
         <PointsStrip {...today} />
       </div>
 
-      <nav className="flex flex-1 flex-col gap-4 overflow-y-auto">
+      <nav className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
         <Section title="My Lists">
           {owned.map((f) => (
             <FolderLink key={f.id} folder={f} active={pathname === `/lists/${f.id}`} />
@@ -53,6 +57,16 @@ export function Sidebar({
           {owned.length === 0 && (
             <p className="px-2 text-xs text-slate-400">No lists yet</p>
           )}
+          <button
+            type="button"
+            onClick={onNewList}
+            className="mt-1 flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm font-medium text-[#007AFF] transition hover:bg-white/50"
+          >
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#007AFF]/15 text-base leading-none">
+              +
+            </span>
+            New List
+          </button>
         </Section>
 
         <Section title="Shared">
@@ -75,6 +89,7 @@ export function Sidebar({
             href="/friends"
             active={pathname.startsWith("/friends")}
             label="Friends"
+            badge={pendingFriends}
           />
         </Section>
       </nav>
@@ -82,7 +97,7 @@ export function Sidebar({
       <button
         type="button"
         onClick={() => signOut({ callbackUrl: "/login" })}
-        className="rounded-xl px-3 py-2 text-left text-sm text-slate-500 transition hover:bg-white/50"
+        className="shrink-0 rounded-xl px-3 py-2 text-left text-sm text-slate-500 transition hover:bg-white/50"
       >
         Sign out
       </button>
@@ -119,11 +134,7 @@ function FolderLink({
         className="flex h-7 w-7 items-center justify-center rounded-lg text-white"
         style={{ backgroundColor: folder.color }}
       >
-        {folder.isPrivate ? (
-          <LockIcon />
-        ) : (
-          <ListIcon />
-        )}
+        {folder.isPrivate ? <LockIcon /> : <ListIcon />}
       </span>
       <span className="min-w-0 flex-1 truncate font-medium text-slate-800">
         {folder.name}
@@ -141,19 +152,26 @@ function NavLink({
   href,
   active,
   label,
+  badge = 0,
 }: {
   href: string;
   active: boolean;
   label: string;
+  badge?: number;
 }) {
   return (
     <Link
       href={href}
-      className={`rounded-xl px-2.5 py-2 text-sm font-medium transition ${
+      className={`flex items-center justify-between rounded-xl px-2.5 py-2 text-sm font-medium transition ${
         active ? "bg-white/70 text-slate-900 shadow-sm" : "text-slate-600 hover:bg-white/40"
       }`}
     >
-      {label}
+      <span>{label}</span>
+      {badge > 0 && (
+        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#FF3B30] px-1.5 text-[11px] font-semibold text-white">
+          {badge}
+        </span>
+      )}
     </Link>
   );
 }

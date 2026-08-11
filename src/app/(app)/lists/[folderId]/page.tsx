@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { TodoRow, TodoItem } from "@/components/TodoRow";
 import { ShareSheet } from "@/components/ShareSheet";
+import { notifyStatsChanged } from "@/lib/events";
 
 type FolderMeta = {
   id: string;
@@ -30,32 +31,35 @@ export default function FolderDetailPage() {
   const canEdit = folder?.role === "owner" || folder?.role === "collaborator";
   const isOwner = folder?.role === "owner";
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const [fRes, tRes] = await Promise.all([
-        fetch(`/api/folders/${folderId}`),
-        fetch(`/api/folders/${folderId}/todos`),
-      ]);
-      if (!fRes.ok) {
-        setError("List not found");
-        setFolder(null);
-        return;
+  const load = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      if (!opts?.silent) setLoading(true);
+      setError("");
+      try {
+        const [fRes, tRes] = await Promise.all([
+          fetch(`/api/folders/${folderId}`),
+          fetch(`/api/folders/${folderId}/todos`),
+        ]);
+        if (!fRes.ok) {
+          setError("List not found");
+          setFolder(null);
+          return;
+        }
+        const f = await fRes.json();
+        const t = await tRes.json();
+        setFolder(f);
+        setTodos(
+          (t.todos ?? []).map((todo: TodoItem & { createdAt: string }) => ({
+            ...todo,
+            createdAt: todo.createdAt,
+          }))
+        );
+      } finally {
+        if (!opts?.silent) setLoading(false);
       }
-      const f = await fRes.json();
-      const t = await tRes.json();
-      setFolder(f);
-      setTodos(
-        (t.todos ?? []).map((todo: TodoItem & { createdAt: string }) => ({
-          ...todo,
-          createdAt: todo.createdAt,
-        }))
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [folderId]);
+    },
+    [folderId]
+  );
 
   useEffect(() => {
     load();
@@ -72,22 +76,67 @@ export default function FolderDetailPage() {
     if (res.ok) {
       setTitle("");
       setPoints(1);
-      await load();
+      window.dispatchEvent(
+        new CustomEvent("jata:stats-delta", {
+          detail: { points: 0, completions: 0, created: 1 },
+        })
+      );
+      await load({ silent: true });
+      notifyStatsChanged();
     }
   }
 
   async function toggle(id: string, completed: boolean) {
-    await fetch(`/api/folders/${folderId}/todos/${id}`, {
+    // Optimistic local update for snappy checkbox
+    setTodos((prev) =>
+      prev.map((t) =>
+        t.id === id
+          ? {
+              ...t,
+              completed,
+              completedAt: completed ? new Date().toISOString() : null,
+            }
+          : t
+      )
+    );
+    // Optimistic sidebar bump
+    if (completed) {
+      const todo = todos.find((t) => t.id === id);
+      if (todo) {
+        window.dispatchEvent(
+          new CustomEvent("jata:stats-delta", {
+            detail: { points: todo.points, completions: 1, created: 0 },
+          })
+        );
+      }
+    } else {
+      const todo = todos.find((t) => t.id === id);
+      if (todo) {
+        window.dispatchEvent(
+          new CustomEvent("jata:stats-delta", {
+            detail: { points: -todo.points, completions: -1, created: 0 },
+          })
+        );
+      }
+    }
+
+    const res = await fetch(`/api/folders/${folderId}/todos/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ completed }),
     });
-    await load();
+    await load({ silent: true });
+    notifyStatsChanged();
+    if (!res.ok) {
+      // Re-sync from server if toggle failed
+      notifyStatsChanged();
+    }
   }
 
   async function remove(id: string) {
     await fetch(`/api/folders/${folderId}/todos/${id}`, { method: "DELETE" });
-    await load();
+    await load({ silent: true });
+    notifyStatsChanged();
   }
 
   async function updatePoints(id: string, next: number) {
@@ -96,12 +145,13 @@ export default function FolderDetailPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ points: next }),
     });
-    await load();
+    await load({ silent: true });
   }
 
   async function deleteList() {
     if (!confirm("Delete this list and all its todos?")) return;
     await fetch(`/api/folders/${folderId}`, { method: "DELETE" });
+    notifyStatsChanged();
     router.push("/lists");
     router.refresh();
   }

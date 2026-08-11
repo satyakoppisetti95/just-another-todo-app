@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { FolderListItem } from "@/components/Sidebar";
+import { notifyNewList } from "@/lib/events";
 
 export default function ListsHomePage() {
   const [owned, setOwned] = useState<FolderListItem[]>([]);
@@ -19,18 +20,33 @@ export default function ListsHomePage() {
       .finally(() => setLoading(false));
   }, []);
 
+  function openNewList() {
+    notifyNewList();
+  }
+
   if (loading) {
     return <p className="text-sm text-slate-500">Loading lists…</p>;
   }
 
   return (
     <div className="animate-slide-up">
-      <h2 className="font-[family-name:var(--font-display)] text-3xl font-semibold tracking-tight text-slate-900">
-        Lists
-      </h2>
-      <p className="mt-1 text-sm text-slate-500">
-        Pick a list or create one from the sidebar. Complete tasks to earn points.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="font-[family-name:var(--font-display)] text-3xl font-semibold tracking-tight text-slate-900">
+            Lists
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Organize reminders into lists. Complete tasks to earn points.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={openNewList}
+          className="rounded-xl bg-[#007AFF] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-105"
+        >
+          + New List
+        </button>
+      </div>
 
       <section className="mt-8">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -40,6 +56,19 @@ export default function ListsHomePage() {
           {owned.map((f) => (
             <ListCard key={f.id} folder={f} />
           ))}
+          <button
+            type="button"
+            onClick={openNewList}
+            className="flex items-center gap-3 rounded-2xl border border-dashed border-slate-300/80 bg-white/30 p-4 text-left transition hover:bg-white/55"
+          >
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#007AFF]/15 text-xl font-light text-[#007AFF]">
+              +
+            </span>
+            <div>
+              <div className="font-medium text-[#007AFF]">Create a list</div>
+              <div className="text-xs text-slate-500">Public or private</div>
+            </div>
+          </button>
         </div>
       </section>
 
@@ -72,11 +101,21 @@ function ListCard({ folder }: { folder: FolderListItem }) {
         {folder.isPrivate ? (
           <svg width="18" height="18" viewBox="0 0 14 14" fill="none">
             <rect x="3" y="6" width="8" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M5 6V4.5a2 2 0 014 0V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <path
+              d="M5 6V4.5a2 2 0 014 0V6"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
           </svg>
         ) : (
           <svg width="18" height="18" viewBox="0 0 14 14" fill="none">
-            <path d="M2 3.5h10M2 7h10M2 10.5h7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            <path
+              d="M2 3.5h10M2 7h10M2 10.5h7"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            />
           </svg>
         )}
       </span>
