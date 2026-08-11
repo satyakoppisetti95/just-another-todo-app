@@ -32,12 +32,12 @@ export function Sidebar({
   const { data } = useSession();
 
   return (
-    <aside className="flex h-full min-h-0 w-full flex-col gap-4 p-4 md:w-[280px] md:shrink-0">
+    <aside className="flex h-full min-h-0 w-full flex-col gap-5 px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] md:w-[280px] md:shrink-0 md:pt-4">
       <div className="shrink-0">
-        <h1 className="font-[family-name:var(--font-display)] text-2xl tracking-tight text-slate-900">
+        <h1 className="font-[family-name:var(--font-display)] text-[28px] font-semibold tracking-tight text-slate-900 md:text-2xl">
           Just Another Todo
         </h1>
-        <p className="mt-0.5 text-xs text-slate-500">
+        <p className="mt-0.5 text-sm text-slate-500 md:text-xs">
           {data?.user?.name ?? "Your reminders"}
         </p>
       </div>
@@ -49,20 +49,20 @@ export function Sidebar({
         <PointsStrip {...today} />
       </div>
 
-      <nav className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+      <nav className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain">
         <Section title="My Lists">
           {owned.map((f) => (
             <FolderLink key={f.id} folder={f} active={pathname === `/lists/${f.id}`} />
           ))}
           {owned.length === 0 && (
-            <p className="px-2 text-xs text-slate-400">No lists yet</p>
+            <p className="px-2 py-2 text-sm text-slate-400">No lists yet</p>
           )}
           <button
             type="button"
             onClick={onNewList}
-            className="mt-1 flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm font-medium text-[#007AFF] transition hover:bg-white/50"
+            className="mt-1 flex w-full items-center gap-3 rounded-2xl px-2.5 py-2.5 text-left text-[15px] font-medium text-[#007AFF] transition active:bg-white/50 md:rounded-xl md:py-2 md:text-sm"
           >
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#007AFF]/15 text-base leading-none">
+            <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#007AFF]/15 text-lg leading-none md:h-7 md:w-7 md:rounded-lg md:text-base">
               +
             </span>
             New List
@@ -74,12 +74,11 @@ export function Sidebar({
             <FolderLink key={f.id} folder={f} active={pathname === `/lists/${f.id}`} />
           ))}
           {shared.length === 0 && (
-            <p className="px-2 text-xs text-slate-400">Nothing shared with you</p>
+            <p className="px-2 py-2 text-sm text-slate-400">Nothing shared with you</p>
           )}
         </Section>
 
         <Section title="Navigate">
-          <NavLink href="/lists" active={pathname === "/lists"} label="All Lists" />
           <NavLink
             href="/completed"
             active={pathname.startsWith("/completed")}
@@ -102,7 +101,7 @@ export function Sidebar({
       <button
         type="button"
         onClick={() => signOut({ callbackUrl: "/login" })}
-        className="shrink-0 rounded-xl px-3 py-2 text-left text-sm text-slate-500 transition hover:bg-white/50"
+        className="shrink-0 rounded-2xl px-3 py-3 text-left text-[15px] text-slate-500 transition active:bg-white/50 md:rounded-xl md:py-2 md:text-sm"
       >
         Sign out
       </button>
@@ -131,12 +130,12 @@ function FolderLink({
   return (
     <Link
       href={`/lists/${folder.id}`}
-      className={`flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm transition ${
-        active ? "bg-white/70 shadow-sm" : "hover:bg-white/40"
+      className={`flex items-center gap-3 rounded-2xl px-2.5 py-2.5 text-[15px] transition active:scale-[0.99] md:rounded-xl md:py-2 md:text-sm ${
+        active ? "bg-white/70 shadow-sm" : "active:bg-white/40 md:hover:bg-white/40"
       }`}
     >
       <span
-        className="flex h-7 w-7 items-center justify-center rounded-lg text-white"
+        className="flex h-8 w-8 items-center justify-center rounded-[10px] text-white md:h-7 md:w-7 md:rounded-lg"
         style={{ backgroundColor: folder.color }}
       >
         {folder.isPrivate ? <LockIcon /> : <ListIcon />}
@@ -145,10 +144,11 @@ function FolderLink({
         {folder.name}
       </span>
       {folder.incompleteCount > 0 && (
-        <span className="text-xs tabular-nums text-slate-400">
+        <span className="text-sm tabular-nums text-slate-400 md:text-xs">
           {folder.incompleteCount}
         </span>
       )}
+      <ChevronRight className="text-slate-300 md:hidden" />
     </Link>
   );
 }
@@ -167,17 +167,43 @@ function NavLink({
   return (
     <Link
       href={href}
-      className={`flex items-center justify-between rounded-xl px-2.5 py-2 text-sm font-medium transition ${
-        active ? "bg-white/70 text-slate-900 shadow-sm" : "text-slate-600 hover:bg-white/40"
+      className={`flex items-center justify-between rounded-2xl px-2.5 py-2.5 text-[15px] font-medium transition active:scale-[0.99] md:rounded-xl md:py-2 md:text-sm ${
+        active
+          ? "bg-white/70 text-slate-900 shadow-sm"
+          : "text-slate-600 active:bg-white/40 md:hover:bg-white/40"
       }`}
     >
       <span>{label}</span>
-      {badge > 0 && (
-        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#FF3B30] px-1.5 text-[11px] font-semibold text-white">
-          {badge}
-        </span>
-      )}
+      <span className="flex items-center gap-2">
+        {badge > 0 && (
+          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#FF3B30] px-1.5 text-[11px] font-semibold text-white">
+            {badge}
+          </span>
+        )}
+        <ChevronRight className="text-slate-300 md:hidden" />
+      </span>
     </Link>
+  );
+}
+
+function ChevronRight({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 14 14"
+      fill="none"
+      className={className}
+      aria-hidden
+    >
+      <path
+        d="M5 3l4 4-4 4"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 

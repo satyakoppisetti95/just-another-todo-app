@@ -25,7 +25,7 @@ body {
     radial-gradient(800px 500px at 50% 100%, rgba(90, 160, 220, 0.2), transparent 55%),
     linear-gradient(180deg, #dbe7f4 0%, #eef3f9 40%, #e8eef6 100%);
   background-attachment: fixed;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 @keyframes slideUp {
@@ -60,10 +60,29 @@ body {
   }
 }
 
+@keyframes slideFromRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
 .animate-fade-in {
   animation: fadeIn 0.35s ease both;
 }
 
 .animate-slide-up {
   animation: slideUp 0.3s ease both;
+}
+
+.animate-slide-from-right {
+  animation: slideFromRight 0.34s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@media (min-width: 768px) {
+  .animate-slide-from-right {
+    animation: none;
+  }
 }
