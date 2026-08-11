@@ -18,7 +18,7 @@ function backTarget(pathname: string) {
 
 function backLabel(pathname: string) {
   if (pathname.startsWith("/friends/") && pathname !== "/friends") return "Friends";
-  return "Lists";
+  return "Home";
 }
 
 function useIsDesktop() {
@@ -41,7 +41,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isDesktop = useIsDesktop();
   const [owned, setOwned] = useState<FolderListItem[]>([]);
   const [shared, setShared] = useState<FolderListItem[]>([]);
-  const [today, setToday] = useState({ points: 0, completions: 0, created: 0 });
+  const [today, setToday] = useState({
+    points: 0,
+    completions: 0,
+    pending: 0,
+    created: 0,
+  });
   const [pendingFriends, setPendingFriends] = useState(0);
   const [newOpen, setNewOpen] = useState(false);
   const [overlayKey, setOverlayKey] = useState(0);
@@ -83,12 +88,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       refresh();
     }
     function onDelta(e: Event) {
-      const detail = (e as CustomEvent<{ points: number; completions: number; created: number }>)
-        .detail;
+      const detail = (
+        e as CustomEvent<{
+          points: number;
+          completions: number;
+          pending?: number;
+          created: number;
+        }>
+      ).detail;
       if (!detail) return;
       setToday((prev) => ({
         points: Math.max(0, prev.points + (detail.points || 0)),
         completions: Math.max(0, prev.completions + (detail.completions || 0)),
+        pending: Math.max(0, prev.pending + (detail.pending || 0)),
         created: Math.max(0, prev.created + (detail.created || 0)),
       }));
     }
@@ -135,7 +147,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="mx-auto min-h-dvh max-w-6xl md:flex md:gap-2 md:p-4">
+    <div
+      className="mx-auto min-h-dvh max-w-6xl md:flex md:gap-2 md:p-4"
+      style={{ background: "var(--bg-surface)" }}
+    >
       {/* Home / sidebar — base layer on mobile */}
       <div
         className={`md:block md:shrink-0 ${
@@ -148,7 +163,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             showMobileOverlay ? "scale-[0.94] opacity-70" : "scale-100 opacity-100"
           }`}
         >
-          <GlassPanel className="flex h-full flex-col overflow-hidden rounded-none border-0 shadow-none md:rounded-2xl md:border md:border-white/40 md:shadow-[0_8px_32px_rgba(15,40,80,0.08)]">
+          <GlassPanel
+            clearMobile
+            className="flex h-full flex-col overflow-hidden rounded-none border-0 shadow-none md:rounded-2xl md:border-white/40"
+          >
             <Sidebar
               owned={owned}
               shared={shared}
@@ -174,14 +192,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div
           key={overlayKey}
           className="fixed inset-0 z-40 flex flex-col animate-slide-from-right"
-          style={{ background: "var(--bg-surface)" }}
+          style={{ backgroundColor: "var(--background)" }}
         >
           <header
-            className="flex shrink-0 items-center gap-1 border-b px-1 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-xl"
-            style={{
-              backgroundColor: "var(--glass-strong)",
-              borderColor: "var(--border)",
-            }}
+            className="flex shrink-0 items-center gap-1 px-1 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))]"
+            style={{ backgroundColor: "var(--background)" }}
           >
             <button
               type="button"
@@ -192,7 +207,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {backLabel(pathname)}
             </button>
           </header>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pb-[max(1rem,env(safe-area-inset-bottom))]"
+            style={{ background: "var(--bg-surface)" }}
+          >
             <div
               className="rounded-2xl border p-4 shadow-[0_8px_32px_rgba(15,40,80,0.08)] backdrop-blur-2xl"
               style={{
@@ -208,12 +226,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Avoid flash on first paint before media query resolves */}
       {isDesktop === null && !home && (
-        <main className="fixed inset-0 z-40 flex flex-col md:static md:z-auto md:min-w-0 md:flex-1 md:pl-2">
-          <header className="flex shrink-0 items-center border-b px-1 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-xl md:hidden"
-            style={{
-              backgroundColor: "var(--glass-strong)",
-              borderColor: "var(--border)",
-            }}
+        <main
+          className="fixed inset-0 z-40 flex flex-col md:static md:z-auto md:min-w-0 md:flex-1 md:pl-2"
+          style={{ backgroundColor: "var(--background)" }}
+        >
+          <header
+            className="flex shrink-0 items-center px-1 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] md:hidden"
+            style={{ backgroundColor: "var(--background)" }}
           >
             <button
               type="button"
@@ -224,7 +243,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {backLabel(pathname)}
             </button>
           </header>
-          <div className="min-h-0 flex-1 overflow-y-auto p-3 md:p-0">
+          <div
+            className="min-h-0 flex-1 overflow-y-auto p-3 md:bg-transparent md:p-0"
+            style={{ background: "var(--bg-surface)" }}
+          >
             <GlassPanel className="min-h-[60vh] p-4 md:min-h-[calc(100vh-2rem)] md:p-6">
               {children}
             </GlassPanel>

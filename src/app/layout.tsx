@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "Just Another Todo",
   },
   icons: {
@@ -46,6 +46,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
   themeColor: defaultTheme.browserColor,
   colorScheme: defaultTheme.colorScheme,
   viewportFit: "cover",
@@ -78,10 +82,8 @@ const themeInitScript = `
     }
     setMeta('theme-color', pack.c);
     setMeta('color-scheme', pack.s);
-    setMeta(
-      'apple-mobile-web-app-status-bar-style',
-      pack.s === 'dark' ? 'black-translucent' : 'default'
-    );
+    // Transparent status bar so the themed page background shows through (PWA)
+    setMeta('apple-mobile-web-app-status-bar-style', 'black-translucent');
   } catch (e) {
     document.documentElement.setAttribute('data-theme', 'sky');
   }

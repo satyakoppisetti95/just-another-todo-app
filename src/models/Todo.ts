@@ -21,7 +21,7 @@ const TodoSchema = new Schema<ITodo>(
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
     title: { type: String, required: true, trim: true },
     notes: { type: String, default: "" },
-    points: { type: Number, default: 1, min: 0, max: 100 },
+    points: { type: Number, default: 10, min: 0, max: 100 },
     dueAt: { type: Date, default: null, index: true },
     completed: { type: Boolean, default: false, index: true },
     completedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },

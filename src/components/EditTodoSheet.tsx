@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import type { TodoItem } from "@/components/TodoRow";
 import { Modal } from "@/components/Modal";
 import { useConfirm } from "@/components/ModalProvider";
+import { DEFAULT_POINTS, pointSelectOptions } from "@/lib/constants";
 
 function toLocalInputValue(iso: string | null | undefined) {
   if (!iso) return "";
@@ -34,7 +35,7 @@ export function EditTodoSheet({
   const confirm = useConfirm();
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
-  const [points, setPoints] = useState(1);
+  const [points, setPoints] = useState<number>(DEFAULT_POINTS);
   const [dueAt, setDueAt] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -123,15 +124,19 @@ export function EditTodoSheet({
           <div className="mt-3 grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-500">Points</label>
-              <input
-                type="number"
-                min={0}
-                max={100}
+              <select
                 value={points}
                 onChange={(e) => setPoints(Number(e.target.value))}
                 disabled={todo.completed}
                 className="mt-1 w-full rounded-xl border border-slate-200/80 bg-white/70 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500/30 disabled:opacity-50"
-              />
+                aria-label="Points"
+              >
+                {pointSelectOptions(todo.points).map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-500">

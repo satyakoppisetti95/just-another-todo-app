@@ -22,6 +22,8 @@ html {
   --bg-glow-2: rgba(52, 199, 89, 0.12);
   --bg-glow-3: rgba(90, 160, 220, 0.2);
   --modal-bg: rgba(255, 255, 255, 0.92);
+  /* Solid fill under iOS PWA status bar (black-translucent) */
+  background-color: var(--background);
 }
 
 html[data-theme="sky"] {
@@ -168,6 +170,10 @@ body {
   background-attachment: fixed;
   min-height: 100dvh;
   transition: color 0.2s ease, background 0.25s ease;
+  /* App-like: reduce double-tap zoom on mobile / PWA */
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 /* Avoid Tailwind name clashes — use these for branded controls */
@@ -221,6 +227,15 @@ body {
 @keyframes slideFromRight {
   from {
     transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideFromLeft {
+  from {
+    transform: translateX(-100%);
   }
   to {
     transform: translateX(0);

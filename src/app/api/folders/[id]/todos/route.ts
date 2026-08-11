@@ -6,11 +6,12 @@ import { Todo } from "@/models/Todo";
 import { User } from "@/models/User";
 import { canEdit, canView, getFolderAccess } from "@/lib/permissions";
 import { logActivity } from "@/lib/analytics";
+import { DEFAULT_POINTS } from "@/lib/constants";
 
 const createSchema = z.object({
   title: z.string().min(1).max(200),
   notes: z.string().max(2000).optional(),
-  points: z.number().int().min(0).max(100).optional(),
+  points: z.number().int().min(10).max(100).optional(),
   dueAt: z.union([z.string().min(1), z.null()]).optional(),
 });
 
@@ -90,7 +91,7 @@ export async function POST(
     createdBy: userId,
     title: parsed.data.title,
     notes: parsed.data.notes ?? "",
-    points: parsed.data.points ?? 1,
+    points: parsed.data.points ?? DEFAULT_POINTS,
     dueAt: parsed.data.dueAt ? new Date(parsed.data.dueAt) : null,
   });
 

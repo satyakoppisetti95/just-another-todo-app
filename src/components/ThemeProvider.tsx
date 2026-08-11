@@ -46,11 +46,8 @@ function applyTheme(id: ThemeId) {
   document.documentElement.style.colorScheme = meta.colorScheme;
   upsertMeta("theme-color", meta.browserColor);
   upsertMeta("color-scheme", meta.colorScheme);
-  // Standalone / home-screen: match status bar to theme surface
-  upsertMeta(
-    "apple-mobile-web-app-status-bar-style",
-    meta.colorScheme === "dark" ? "black-translucent" : "default"
-  );
+  // Transparent status bar so themed background shows in standalone / PWA
+  upsertMeta("apple-mobile-web-app-status-bar-style", "black-translucent");
 }
 
 function readStoredTheme(): ThemeId | null {
