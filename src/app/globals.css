@@ -168,6 +168,10 @@ body {
   background-attachment: fixed;
   min-height: 100dvh;
   transition: color 0.2s ease, background 0.25s ease;
+  /* App-like: reduce double-tap zoom on mobile / PWA */
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 /* Avoid Tailwind name clashes — use these for branded controls */
