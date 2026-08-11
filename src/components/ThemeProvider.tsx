@@ -11,7 +11,13 @@ import {
   useState,
 } from "react";
 import { useSession } from "next-auth/react";
-import { DEFAULT_THEME, isThemeId, ThemeId, THEMES } from "@/lib/themes";
+import {
+  DEFAULT_THEME,
+  getThemeMeta,
+  isThemeId,
+  ThemeId,
+  THEMES,
+} from "@/lib/themes";
 
 const STORAGE_KEY = "jata-theme";
 
@@ -23,9 +29,28 @@ type ThemeContextValue = {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+function upsertMeta(name: string, content: string) {
+  let el = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
+  if (!el) {
+    el = document.createElement("meta");
+    el.name = name;
+    document.head.appendChild(el);
+  }
+  el.content = content;
+}
+
 function applyTheme(id: ThemeId) {
   if (typeof document === "undefined") return;
+  const meta = getThemeMeta(id);
   document.documentElement.setAttribute("data-theme", id);
+  document.documentElement.style.colorScheme = meta.colorScheme;
+  upsertMeta("theme-color", meta.browserColor);
+  upsertMeta("color-scheme", meta.colorScheme);
+  // Standalone / home-screen: match status bar to theme surface
+  upsertMeta(
+    "apple-mobile-web-app-status-bar-style",
+    meta.colorScheme === "dark" ? "black-translucent" : "default"
+  );
 }
 
 function readStoredTheme(): ThemeId | null {
