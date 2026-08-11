@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { PointEvent } from "@/models/PointEvent";
 import { ActivityEvent } from "@/models/ActivityEvent";
 import { Folder } from "@/models/Folder";
+import { FolderShare } from "@/models/FolderShare";
 import { Todo } from "@/models/Todo";
 
 function startOfDay(d: Date) {
@@ -53,74 +54,101 @@ export async function getAnalytics(
     createdAt: { $gte: rangeStart },
   };
 
-  const [pointAgg, activityAgg, todayPoints, todayCompletions, todayCreated, byFolder, selfPeer] =
-    await Promise.all([
-      PointEvent.aggregate([
-        { $match: pointMatch },
-        {
-          $group: {
-            _id: {
-              $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
-            },
-            points: { $sum: "$points" },
-            count: { $sum: 1 },
+  const ownedFoldersForPending = await Folder.find(
+    opts.excludePrivate ? { ownerId: uid, isPrivate: false } : { ownerId: uid }
+  )
+    .select("_id")
+    .lean();
+  const sharesForPending = opts.excludePrivate
+    ? []
+    : await FolderShare.find({ userId: uid }).select("folderId").lean();
+  const pendingFolderIds = [
+    ...ownedFoldersForPending.map((f) => f._id),
+    ...sharesForPending.map((s) => s.folderId),
+  ];
+
+  const [
+    pointAgg,
+    activityAgg,
+    todayPoints,
+    todayCompletions,
+    todayCreated,
+    pending,
+    byFolder,
+    selfPeer,
+  ] = await Promise.all([
+    PointEvent.aggregate([
+      { $match: pointMatch },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
           },
+          points: { $sum: "$points" },
+          count: { $sum: 1 },
         },
-        { $sort: { _id: 1 } },
-      ]),
-      ActivityEvent.aggregate([
-        { $match: { ...activityMatch, type: "todo_completed" } },
-        {
-          $group: {
-            _id: {
-              $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
-            },
-            completions: { $sum: 1 },
+      },
+      { $sort: { _id: 1 } },
+    ]),
+    ActivityEvent.aggregate([
+      { $match: { ...activityMatch, type: "todo_completed" } },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
           },
+          completions: { $sum: 1 },
         },
-        { $sort: { _id: 1 } },
-      ]),
-      PointEvent.aggregate([
-        {
-          $match: {
-            userId: uid,
-            createdAt: { $gte: todayStart },
-            ...(folderFilter ? { folderId: { $in: folderFilter } } : {}),
-          },
+      },
+      { $sort: { _id: 1 } },
+    ]),
+    PointEvent.aggregate([
+      {
+        $match: {
+          userId: uid,
+          createdAt: { $gte: todayStart },
+          ...(folderFilter ? { folderId: { $in: folderFilter } } : {}),
         },
-        { $group: { _id: null, points: { $sum: "$points" } } },
-      ]),
-      ActivityEvent.countDocuments({
-        userId: uid,
-        type: "todo_completed",
-        createdAt: { $gte: todayStart },
-      }),
-      ActivityEvent.countDocuments({
-        userId: uid,
-        type: "todo_created",
-        createdAt: { $gte: todayStart },
-      }),
-      PointEvent.aggregate([
-        { $match: pointMatch },
-        {
-          $group: {
-            _id: "$folderId",
-            points: { $sum: "$points" },
-          },
+      },
+      { $group: { _id: null, points: { $sum: "$points" } } },
+    ]),
+    ActivityEvent.countDocuments({
+      userId: uid,
+      type: "todo_completed",
+      createdAt: { $gte: todayStart },
+    }),
+    ActivityEvent.countDocuments({
+      userId: uid,
+      type: "todo_created",
+      createdAt: { $gte: todayStart },
+    }),
+    pendingFolderIds.length === 0
+      ? Promise.resolve(0)
+      : Todo.countDocuments({
+          folderId: { $in: pendingFolderIds },
+          completed: false,
+        }),
+    PointEvent.aggregate([
+      { $match: pointMatch },
+      {
+        $group: {
+          _id: "$folderId",
+          points: { $sum: "$points" },
         },
-        { $sort: { points: -1 } },
-        { $limit: 8 },
-      ]),
-      PointEvent.aggregate([
-        { $match: pointMatch },
-        {
-          $group: {
-            _id: "$source",
-            points: { $sum: "$points" },
-          },
+      },
+      { $sort: { points: -1 } },
+      { $limit: 8 },
+    ]),
+    PointEvent.aggregate([
+      { $match: pointMatch },
+      {
+        $group: {
+          _id: "$source",
+          points: { $sum: "$points" },
         },
-      ]),
-    ]);
+      },
+    ]),
+  ]);
 
   const days: { date: string; points: number; completions: number }[] = [];
   const pointMap = new Map(pointAgg.map((p) => [p._id, p.points as number]));
@@ -177,6 +205,7 @@ export async function getAnalytics(
     today: {
       points: todayPoints[0]?.points ?? 0,
       completions: todayCompletions,
+      pending,
       created: todayCreated,
     },
     series: days,

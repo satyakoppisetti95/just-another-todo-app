@@ -18,7 +18,7 @@ function backTarget(pathname: string) {
 
 function backLabel(pathname: string) {
   if (pathname.startsWith("/friends/") && pathname !== "/friends") return "Friends";
-  return "Lists";
+  return "Home";
 }
 
 function useIsDesktop() {
@@ -41,7 +41,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isDesktop = useIsDesktop();
   const [owned, setOwned] = useState<FolderListItem[]>([]);
   const [shared, setShared] = useState<FolderListItem[]>([]);
-  const [today, setToday] = useState({ points: 0, completions: 0, created: 0 });
+  const [today, setToday] = useState({
+    points: 0,
+    completions: 0,
+    pending: 0,
+    created: 0,
+  });
   const [pendingFriends, setPendingFriends] = useState(0);
   const [newOpen, setNewOpen] = useState(false);
   const [overlayKey, setOverlayKey] = useState(0);
@@ -83,12 +88,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       refresh();
     }
     function onDelta(e: Event) {
-      const detail = (e as CustomEvent<{ points: number; completions: number; created: number }>)
-        .detail;
+      const detail = (
+        e as CustomEvent<{
+          points: number;
+          completions: number;
+          pending?: number;
+          created: number;
+        }>
+      ).detail;
       if (!detail) return;
       setToday((prev) => ({
         points: Math.max(0, prev.points + (detail.points || 0)),
         completions: Math.max(0, prev.completions + (detail.completions || 0)),
+        pending: Math.max(0, prev.pending + (detail.pending || 0)),
         created: Math.max(0, prev.created + (detail.created || 0)),
       }));
     }

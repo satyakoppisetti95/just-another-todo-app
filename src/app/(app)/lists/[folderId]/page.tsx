@@ -92,7 +92,7 @@ export default function FolderDetailPage() {
       setPoints(DEFAULT_POINTS);
       window.dispatchEvent(
         new CustomEvent("jata:stats-delta", {
-          detail: { points: 0, completions: 0, created: 1 },
+          detail: { points: 0, completions: 0, pending: 1, created: 1 },
         })
       );
       await load({ silent: true });

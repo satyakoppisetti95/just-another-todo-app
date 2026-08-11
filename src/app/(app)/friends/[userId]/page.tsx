@@ -6,7 +6,7 @@ import { PointsStrip } from "@/components/PointsStrip";
 import { AnalyticsCharts } from "@/components/AnalyticsCharts";
 
 type AnalyticsData = {
-  today: { points: number; completions: number; created: number };
+  today: { points: number; completions: number; pending: number; created: number };
   series: { date: string; points: number; completions: number }[];
   byFolder: { folderId: string; name: string; color: string; points: number }[];
   selfVsPeer: { self: number; peer: number };
