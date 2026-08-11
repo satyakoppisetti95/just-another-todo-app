@@ -5,6 +5,7 @@ import { connectDB } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { Todo } from "@/models/Todo";
 import { PointEvent } from "@/models/PointEvent";
+import { ActivityEvent } from "@/models/ActivityEvent";
 import { canEdit, getFolderAccess } from "@/lib/permissions";
 import { logActivity } from "@/lib/analytics";
 
@@ -60,6 +61,9 @@ export async function PATCH(
       const ownerId = folder.ownerId.toString();
       const source = userId === ownerId ? "self" : "peer";
 
+      // Ensure we never stack awards if a prior undo failed to clean up
+      await PointEvent.deleteMany({ todoId: todo._id });
+
       await PointEvent.create({
         userId: ownerId,
         todoId: todo._id,
@@ -110,7 +114,16 @@ export async function PATCH(
       todo.completed = false;
       todo.completedBy = null;
       todo.completedAt = null;
+
+      // Remove all point awards for this reminder (owner + peer copies)
       await PointEvent.deleteMany({ todoId: todo._id });
+
+      // Roll back today's completion/points activity so analytics match
+      await ActivityEvent.deleteMany({
+        type: { $in: ["todo_completed", "points_awarded"] },
+        "meta.todoId": todo._id.toString(),
+      });
+
       await logActivity(userId, "todo_uncompleted", {
         todoId: todo._id.toString(),
         folderId: folder._id.toString(),

@@ -1,12 +1,17 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { TodoRow, TodoItem } from "@/components/TodoRow";
 import { ShareSheet } from "@/components/ShareSheet";
 import { EditTodoSheet } from "@/components/EditTodoSheet";
+import { CelebrationModal } from "@/components/CelebrationModal";
 import { notifyStatsChanged } from "@/lib/events";
 import { useConfirm } from "@/components/ModalProvider";
+import {
+  nextCelebrationMessage,
+  type CelebrationPayload,
+} from "@/lib/celebration";
 
 type FolderMeta = {
   id: string;
@@ -29,8 +34,13 @@ export default function FolderDetailPage() {
   const [points, setPoints] = useState(1);
   const [shareOpen, setShareOpen] = useState(false);
   const [editing, setEditing] = useState<TodoItem | null>(null);
+  const [celebration, setCelebration] = useState<CelebrationPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Keep items completed during this visit visible (strikethrough + undo)
+  // until the user leaves the list. Fresh visits only show open items.
+  const sessionDoneIds = useRef<Set<string>>(new Set());
 
   const canEdit = folder?.role === "owner" || folder?.role === "collaborator";
   const isOwner = folder?.role === "owner";
@@ -51,8 +61,11 @@ export default function FolderDetailPage() {
         }
         const f = await fRes.json();
         const t = await tRes.json();
+        const list = (t.todos ?? []) as TodoItem[];
         setFolder(f);
-        setTodos(t.todos ?? []);
+        setTodos(
+          list.filter((todo) => !todo.completed || sessionDoneIds.current.has(todo.id))
+        );
       } finally {
         if (!opts?.silent) setLoading(false);
       }
@@ -61,6 +74,7 @@ export default function FolderDetailPage() {
   );
 
   useEffect(() => {
+    sessionDoneIds.current = new Set();
     load();
   }, [load]);
 
@@ -86,6 +100,10 @@ export default function FolderDetailPage() {
   }
 
   async function toggle(id: string, completed: boolean) {
+    if (completed) sessionDoneIds.current.add(id);
+    else sessionDoneIds.current.delete(id);
+
+    const previous = todos.find((t) => t.id === id);
     setTodos((prev) =>
       prev.map((t) =>
         t.id === id
@@ -97,33 +115,33 @@ export default function FolderDetailPage() {
           : t
       )
     );
-    if (completed) {
-      const todo = todos.find((t) => t.id === id);
-      if (todo) {
-        window.dispatchEvent(
-          new CustomEvent("jata:stats-delta", {
-            detail: { points: todo.points, completions: 1, created: 0 },
-          })
-        );
-      }
-    } else {
-      const todo = todos.find((t) => t.id === id);
-      if (todo) {
-        window.dispatchEvent(
-          new CustomEvent("jata:stats-delta", {
-            detail: { points: -todo.points, completions: -1, created: 0 },
-          })
-        );
-      }
-    }
 
-    await fetch(`/api/folders/${folderId}/todos/${id}`, {
+    const res = await fetch(`/api/folders/${folderId}/todos/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ completed }),
     });
-    await load({ silent: true });
+    if (!res.ok) {
+      // Roll back optimistic UI
+      if (completed) sessionDoneIds.current.delete(id);
+      else sessionDoneIds.current.add(id);
+      if (previous) {
+        setTodos((prev) => prev.map((t) => (t.id === id ? previous : t)));
+      } else {
+        await load({ silent: true });
+      }
+      return;
+    }
+    // Trust server totals — avoids optimistic delta racing with refresh
     notifyStatsChanged();
+
+    if (completed && previous) {
+      setCelebration({
+        message: nextCelebrationMessage(),
+        points: previous.points,
+        title: previous.title,
+      });
+    }
   }
 
   async function saveEdit(patch: {
@@ -172,8 +190,12 @@ export default function FolderDetailPage() {
   if (loading) return <p className="text-sm text-slate-500">Loading…</p>;
   if (error || !folder) return <p className="text-sm text-red-500">{error || "Not found"}</p>;
 
-  const open = todos.filter((t) => !t.completed);
-  const doneCount = todos.filter((t) => t.completed).length;
+  const openCount = todos.filter((t) => !t.completed).length;
+  // Open items first, then ones completed during this visit (still visible)
+  const visibleTodos = [
+    ...todos.filter((t) => !t.completed),
+    ...todos.filter((t) => t.completed),
+  ];
 
   return (
     <div className="animate-slide-up">
@@ -197,7 +219,7 @@ export default function FolderDetailPage() {
               {folder.name}
             </h2>
             <p className="text-sm text-slate-500">
-              {open.length} open · {folder.role}
+              {openCount} open · {folder.role}
               {folder.isPrivate ? " · private" : ""}
             </p>
           </div>
@@ -251,21 +273,19 @@ export default function FolderDetailPage() {
       )}
 
       <div className="mt-6 overflow-hidden rounded-2xl bg-white/50 ring-1 ring-white/70">
-        {open.length === 0 ? (
+        {visibleTodos.length === 0 ? (
           <p className="px-4 py-10 text-center text-sm text-slate-400">
-            {doneCount > 0
-              ? "All caught up — no open reminders."
-              : "No reminders yet. Add one above."}
+            No reminders yet. Add one above.
           </p>
         ) : (
-          open.map((todo) => (
+          visibleTodos.map((todo) => (
             <TodoRow
               key={todo.id}
               todo={todo}
               color={folder.color}
               canEdit={!!canEdit}
               onToggle={toggle}
-              onEdit={setEditing}
+              onEdit={todo.completed ? undefined : setEditing}
             />
           ))
         )}
@@ -284,6 +304,11 @@ export default function FolderDetailPage() {
         onClose={() => setEditing(null)}
         onSave={saveEdit}
         onDelete={deleteEditing}
+      />
+
+      <CelebrationModal
+        celebration={celebration}
+        onClose={() => setCelebration(null)}
       />
     </div>
   );
