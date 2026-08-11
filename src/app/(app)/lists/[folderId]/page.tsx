@@ -4,7 +4,9 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { TodoRow, TodoItem } from "@/components/TodoRow";
 import { ShareSheet } from "@/components/ShareSheet";
+import { EditTodoSheet } from "@/components/EditTodoSheet";
 import { notifyStatsChanged } from "@/lib/events";
+import { useConfirm } from "@/components/ModalProvider";
 
 type FolderMeta = {
   id: string;
@@ -19,12 +21,14 @@ export default function FolderDetailPage() {
   const params = useParams<{ folderId: string }>();
   const router = useRouter();
   const folderId = params.folderId;
+  const confirm = useConfirm();
 
   const [folder, setFolder] = useState<FolderMeta | null>(null);
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [title, setTitle] = useState("");
   const [points, setPoints] = useState(1);
   const [shareOpen, setShareOpen] = useState(false);
+  const [editing, setEditing] = useState<TodoItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -48,12 +52,7 @@ export default function FolderDetailPage() {
         const f = await fRes.json();
         const t = await tRes.json();
         setFolder(f);
-        setTodos(
-          (t.todos ?? []).map((todo: TodoItem & { createdAt: string }) => ({
-            ...todo,
-            createdAt: todo.createdAt,
-          }))
-        );
+        setTodos(t.todos ?? []);
       } finally {
         if (!opts?.silent) setLoading(false);
       }
@@ -87,7 +86,6 @@ export default function FolderDetailPage() {
   }
 
   async function toggle(id: string, completed: boolean) {
-    // Optimistic local update for snappy checkbox
     setTodos((prev) =>
       prev.map((t) =>
         t.id === id
@@ -99,7 +97,6 @@ export default function FolderDetailPage() {
           : t
       )
     );
-    // Optimistic sidebar bump
     if (completed) {
       const todo = todos.find((t) => t.id === id);
       if (todo) {
@@ -120,36 +117,52 @@ export default function FolderDetailPage() {
       }
     }
 
-    const res = await fetch(`/api/folders/${folderId}/todos/${id}`, {
+    await fetch(`/api/folders/${folderId}/todos/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ completed }),
     });
     await load({ silent: true });
     notifyStatsChanged();
-    if (!res.ok) {
-      // Re-sync from server if toggle failed
-      notifyStatsChanged();
-    }
   }
 
-  async function remove(id: string) {
-    await fetch(`/api/folders/${folderId}/todos/${id}`, { method: "DELETE" });
+  async function saveEdit(patch: {
+    title: string;
+    notes: string;
+    points: number;
+    dueAt: string | null;
+  }) {
+    if (!editing) return;
+    const res = await fetch(`/api/folders/${folderId}/todos/${editing.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Failed to save");
+    }
+    await load({ silent: true });
+  }
+
+  async function deleteEditing() {
+    if (!editing) return;
+    await fetch(`/api/folders/${folderId}/todos/${editing.id}`, {
+      method: "DELETE",
+    });
     await load({ silent: true });
     notifyStatsChanged();
   }
 
-  async function updatePoints(id: string, next: number) {
-    await fetch(`/api/folders/${folderId}/todos/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ points: next }),
-    });
-    await load({ silent: true });
-  }
-
   async function deleteList() {
-    if (!confirm("Delete this list and all its todos?")) return;
+    const ok = await confirm({
+      title: "Delete this list?",
+      message:
+        "All reminders in this list will be permanently deleted. This cannot be undone.",
+      confirmLabel: "Delete list",
+      danger: true,
+    });
+    if (!ok) return;
     await fetch(`/api/folders/${folderId}`, { method: "DELETE" });
     notifyStatsChanged();
     router.push("/lists");
@@ -160,7 +173,7 @@ export default function FolderDetailPage() {
   if (error || !folder) return <p className="text-sm text-red-500">{error || "Not found"}</p>;
 
   const open = todos.filter((t) => !t.completed);
-  const done = todos.filter((t) => t.completed);
+  const doneCount = todos.filter((t) => t.completed).length;
 
   return (
     <div className="animate-slide-up">
@@ -240,7 +253,7 @@ export default function FolderDetailPage() {
       <div className="mt-6 overflow-hidden rounded-2xl bg-white/50 ring-1 ring-white/70">
         {open.length === 0 ? (
           <p className="px-4 py-10 text-center text-sm text-slate-400">
-            {done.length > 0
+            {doneCount > 0
               ? "All caught up — no open reminders."
               : "No reminders yet. Add one above."}
           </p>
@@ -252,8 +265,7 @@ export default function FolderDetailPage() {
               color={folder.color}
               canEdit={!!canEdit}
               onToggle={toggle}
-              onDelete={remove}
-              onUpdatePoints={updatePoints}
+              onEdit={setEditing}
             />
           ))
         )}
@@ -264,6 +276,14 @@ export default function FolderDetailPage() {
         folderId={folderId}
         isPrivate={folder.isPrivate}
         onClose={() => setShareOpen(false)}
+      />
+
+      <EditTodoSheet
+        open={!!editing}
+        todo={editing}
+        onClose={() => setEditing(null)}
+        onSave={saveEdit}
+        onDelete={deleteEditing}
       />
     </div>
   );

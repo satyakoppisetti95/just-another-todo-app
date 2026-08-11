@@ -7,6 +7,7 @@ export interface ITodo {
   title: string;
   notes: string;
   points: number;
+  dueAt?: Date | null;
   completed: boolean;
   completedBy?: mongoose.Types.ObjectId | null;
   completedAt?: Date | null;
@@ -21,6 +22,7 @@ const TodoSchema = new Schema<ITodo>(
     title: { type: String, required: true, trim: true },
     notes: { type: String, default: "" },
     points: { type: Number, default: 1, min: 0, max: 100 },
+    dueAt: { type: Date, default: null, index: true },
     completed: { type: Boolean, default: false, index: true },
     completedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
     completedAt: { type: Date, default: null },

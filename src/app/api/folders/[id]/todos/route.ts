@@ -11,6 +11,7 @@ const createSchema = z.object({
   title: z.string().min(1).max(200),
   notes: z.string().max(2000).optional(),
   points: z.number().int().min(0).max(100).optional(),
+  dueAt: z.union([z.string().min(1), z.null()]).optional(),
 });
 
 export async function GET(
@@ -48,6 +49,7 @@ export async function GET(
       title: t.title,
       notes: t.notes,
       points: t.points,
+      dueAt: t.dueAt ?? null,
       completed: t.completed,
       createdBy: t.createdBy.toString(),
       createdByName: nameMap.get(t.createdBy.toString()) ?? "",
@@ -89,6 +91,7 @@ export async function POST(
     title: parsed.data.title,
     notes: parsed.data.notes ?? "",
     points: parsed.data.points ?? 1,
+    dueAt: parsed.data.dueAt ? new Date(parsed.data.dueAt) : null,
   });
 
   await logActivity(userId, "todo_created", {
@@ -112,6 +115,7 @@ export async function POST(
     title: todo.title,
     notes: todo.notes,
     points: todo.points,
+    dueAt: todo.dueAt ?? null,
     completed: false,
     createdBy: userId,
     createdAt: todo.createdAt,

@@ -7,6 +7,7 @@ export type TodoItem = {
   title: string;
   notes: string;
   points: number;
+  dueAt?: string | null;
   completed: boolean;
   createdByName?: string;
   completedByName?: string | null;
@@ -14,22 +15,45 @@ export type TodoItem = {
   completedAt?: string | null;
 };
 
+function formatDue(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const now = new Date();
+  const sameDay =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+  if (sameDay) {
+    return `Due ${d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+  }
+  return `Due ${d.toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  })}`;
+}
+
+function isOverdue(iso: string, completed: boolean) {
+  if (completed) return false;
+  return new Date(iso).getTime() < Date.now();
+}
+
 export function TodoRow({
   todo,
   color,
   canEdit,
   onToggle,
-  onDelete,
-  onUpdatePoints,
+  onEdit,
 }: {
   todo: TodoItem;
   color: string;
   canEdit: boolean;
   onToggle: (id: string, completed: boolean) => void;
-  onDelete: (id: string) => void;
-  onUpdatePoints: (id: string, points: number) => void;
+  onEdit?: (todo: TodoItem) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const overdue = todo.dueAt ? isOverdue(todo.dueAt, todo.completed) : false;
 
   async function toggle() {
     if (!canEdit || busy) return;
@@ -86,6 +110,11 @@ export function TodoRow({
         ) : null}
         <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
           <span>{todo.points} pts</span>
+          {todo.dueAt ? (
+            <span className={overdue ? "font-medium text-[#FF3B30]" : ""}>
+              · {formatDue(todo.dueAt)}
+            </span>
+          ) : null}
           {todo.createdByName ? <span>· by {todo.createdByName}</span> : null}
           {todo.completed && todo.completedByName ? (
             <span>· done by {todo.completedByName}</span>
@@ -93,31 +122,30 @@ export function TodoRow({
         </div>
       </div>
 
-      {canEdit && !todo.completed && (
-        <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-          <button
-            type="button"
-            className="rounded-lg px-1.5 py-0.5 text-xs text-slate-500 hover:bg-white/70"
-            onClick={() => onUpdatePoints(todo.id, Math.max(0, todo.points - 1))}
-          >
-            −
-          </button>
-          <button
-            type="button"
-            className="rounded-lg px-1.5 py-0.5 text-xs text-slate-500 hover:bg-white/70"
-            onClick={() => onUpdatePoints(todo.id, Math.min(100, todo.points + 1))}
-          >
-            +
-          </button>
-          <button
-            type="button"
-            className="rounded-lg px-1.5 py-0.5 text-xs text-red-500 hover:bg-red-50"
-            onClick={() => onDelete(todo.id)}
-          >
-            Delete
-          </button>
-        </div>
+      {canEdit && onEdit && (
+        <button
+          type="button"
+          aria-label="Edit reminder"
+          onClick={() => onEdit(todo)}
+          className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 opacity-70 transition hover:bg-white/70 hover:text-slate-700 group-hover:opacity-100"
+        >
+          <EditIcon />
+        </button>
       )}
     </div>
+  );
+}
+
+function EditIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path
+        d="M11.5 2.5l2 2M3 13l.5-2.5L11.5 2.5l2 2L5.5 12.5 3 13z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

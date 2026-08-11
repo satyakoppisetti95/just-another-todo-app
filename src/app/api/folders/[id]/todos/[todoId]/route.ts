@@ -12,6 +12,7 @@ const updateSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   notes: z.string().max(2000).optional(),
   points: z.number().int().min(0).max(100).optional(),
+  dueAt: z.union([z.string().min(1), z.null()]).optional(),
   completed: z.boolean().optional(),
 });
 
@@ -45,6 +46,9 @@ export async function PATCH(
   if (parsed.data.notes !== undefined) todo.notes = parsed.data.notes;
   if (parsed.data.points !== undefined && !todo.completed) {
     todo.points = parsed.data.points;
+  }
+  if (parsed.data.dueAt !== undefined) {
+    todo.dueAt = parsed.data.dueAt ? new Date(parsed.data.dueAt) : null;
   }
 
   if (parsed.data.completed !== undefined && parsed.data.completed !== todo.completed) {
@@ -121,6 +125,7 @@ export async function PATCH(
     title: todo.title,
     notes: todo.notes,
     points: todo.points,
+    dueAt: todo.dueAt ?? null,
     completed: todo.completed,
     completedBy: todo.completedBy?.toString() ?? null,
     completedAt: todo.completedAt,

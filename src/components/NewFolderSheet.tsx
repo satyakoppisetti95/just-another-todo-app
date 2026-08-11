@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { FOLDER_COLORS } from "@/lib/constants";
+import { Modal } from "@/components/Modal";
 
 export function NewFolderSheet({
   open,
@@ -17,8 +18,6 @@ export function NewFolderSheet({
   const [isPrivate, setIsPrivate] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  if (!open) return null;
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -46,12 +45,11 @@ export function NewFolderSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/30 p-4 backdrop-blur-sm sm:items-center">
-      <form
-        onSubmit={submit}
-        className="w-full max-w-md animate-[slideUp_0.25s_ease] rounded-2xl border border-white/50 bg-white/80 p-5 shadow-2xl backdrop-blur-2xl"
-      >
-        <h2 className="text-lg font-semibold text-slate-900">New List</h2>
+    <Modal open={open} onClose={onClose} labelledBy="new-list-title">
+      <form onSubmit={submit}>
+        <h2 id="new-list-title" className="text-lg font-semibold text-slate-900">
+          New List
+        </h2>
         <p className="mt-1 text-sm text-slate-500">Organize reminders like Apple Folders.</p>
 
         <label className="mt-4 block text-xs font-medium text-slate-500">Name</label>
@@ -108,6 +106,6 @@ export function NewFolderSheet({
           </button>
         </div>
       </form>
-    </div>
+    </Modal>
   );
 }

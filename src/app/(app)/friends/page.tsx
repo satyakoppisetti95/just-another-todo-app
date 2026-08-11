@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useConfirm } from "@/components/ModalProvider";
 
 type Friend = {
   friendshipId: string;
@@ -11,6 +12,7 @@ type Friend = {
 };
 
 export default function FriendsPage() {
+  const confirm = useConfirm();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [incoming, setIncoming] = useState<Friend[]>([]);
   const [outgoing, setOutgoing] = useState<Friend[]>([]);
@@ -62,6 +64,18 @@ export default function FriendsPage() {
   }
 
   async function act(friendshipId: string, action: "accept" | "decline" | "remove") {
+    if (action === "remove") {
+      const friend = friends.find((f) => f.friendshipId === friendshipId);
+      const ok = await confirm({
+        title: "Remove friend?",
+        message: friend
+          ? `${friend.name} will be removed from your friends list. Shared lists are not affected.`
+          : "This person will be removed from your friends list.",
+        confirmLabel: "Remove",
+        danger: true,
+      });
+      if (!ok) return;
+    }
     await fetch(`/api/friends/${friendshipId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
