@@ -238,42 +238,24 @@ export default function FolderDetailPage() {
       )}
 
       <div className="mt-6 overflow-hidden rounded-2xl bg-white/50 ring-1 ring-white/70">
-        {open.length === 0 && done.length === 0 ? (
+        {open.length === 0 ? (
           <p className="px-4 py-10 text-center text-sm text-slate-400">
-            No reminders yet. Add one above.
+            {done.length > 0
+              ? "All caught up — no open reminders."
+              : "No reminders yet. Add one above."}
           </p>
         ) : (
-          <>
-            {open.map((todo) => (
-              <TodoRow
-                key={todo.id}
-                todo={todo}
-                color={folder.color}
-                canEdit={!!canEdit}
-                onToggle={toggle}
-                onDelete={remove}
-                onUpdatePoints={updatePoints}
-              />
-            ))}
-            {done.length > 0 && (
-              <>
-                <div className="bg-slate-100/40 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                  Completed
-                </div>
-                {done.map((todo) => (
-                  <TodoRow
-                    key={todo.id}
-                    todo={todo}
-                    color={folder.color}
-                    canEdit={!!canEdit}
-                    onToggle={toggle}
-                    onDelete={remove}
-                    onUpdatePoints={updatePoints}
-                  />
-                ))}
-              </>
-            )}
-          </>
+          open.map((todo) => (
+            <TodoRow
+              key={todo.id}
+              todo={todo}
+              color={folder.color}
+              canEdit={!!canEdit}
+              onToggle={toggle}
+              onDelete={remove}
+              onUpdatePoints={updatePoints}
+            />
+          ))
         )}
       </div>
 

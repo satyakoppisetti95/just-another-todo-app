@@ -81,6 +81,11 @@ export function Sidebar({
         <Section title="Navigate">
           <NavLink href="/lists" active={pathname === "/lists"} label="All Lists" />
           <NavLink
+            href="/completed"
+            active={pathname.startsWith("/completed")}
+            label="Completed"
+          />
+          <NavLink
             href="/analytics"
             active={pathname.startsWith("/analytics")}
             label="Analytics"

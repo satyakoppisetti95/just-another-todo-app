@@ -28,4 +28,7 @@ const TodoSchema = new Schema<ITodo>(
   { timestamps: true }
 );
 
+TodoSchema.index({ completed: 1, completedAt: -1 });
+TodoSchema.index({ folderId: 1, completed: 1, completedAt: -1 });
+
 export const Todo = models.Todo || model<ITodo>("Todo", TodoSchema);
