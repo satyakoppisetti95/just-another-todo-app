@@ -207,14 +207,25 @@ export async function DELETE(
 
   await connectDB();
   const { folder, access } = await getFolderAccess(id, userId);
-  if (!folder || !canManageShares(access)) {
+  if (!folder || !canView(access)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { searchParams } = new URL(req.url);
-  const shareUserId = searchParams.get("userId");
-  if (!shareUserId) {
-    return NextResponse.json({ error: "userId required" }, { status: 400 });
+  const rawUserId = searchParams.get("userId");
+  // Omit userId or pass "me" to leave the list yourself
+  const shareUserId =
+    !rawUserId || rawUserId === "me" ? userId : rawUserId;
+
+  const leavingSelf = shareUserId === userId;
+  if (!canManageShares(access) && !leavingSelf) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  if (leavingSelf && access === "owner") {
+    return NextResponse.json(
+      { error: "Owners cannot leave their own list" },
+      { status: 400 }
+    );
   }
 
   await FolderShare.deleteOne({ folderId: folder._id, userId: shareUserId });

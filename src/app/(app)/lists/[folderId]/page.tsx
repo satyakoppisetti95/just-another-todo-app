@@ -188,6 +188,27 @@ export default function FolderDetailPage() {
     router.refresh();
   }
 
+  async function leaveList() {
+    const ok = await confirm({
+      title: "Leave this list?",
+      message: "You’ll lose access until the owner invites you again.",
+      confirmLabel: "Leave list",
+      danger: true,
+    });
+    if (!ok) return;
+    const res = await fetch(`/api/folders/${folderId}/shares?userId=me`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error || "Failed to leave list");
+      return;
+    }
+    notifyStatsChanged();
+    router.push("/lists");
+    router.refresh();
+  }
+
   if (loading) return <p className="text-sm text-slate-500">Loading…</p>;
   if (error || !folder) return <p className="text-sm text-red-500">{error || "Not found"}</p>;
 
@@ -200,48 +221,60 @@ export default function FolderDetailPage() {
 
   return (
     <div className="animate-slide-up">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span
-            className="flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-md"
-            style={{ backgroundColor: folder.color }}
-          >
-            <svg width="22" height="22" viewBox="0 0 14 14" fill="none">
-              <path
-                d="M2 3.5h10M2 7h10M2 10.5h7"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-              />
-            </svg>
-          </span>
-          <div>
-            <h2 className="font-[family-name:var(--font-display)] text-3xl font-semibold tracking-tight text-slate-900">
-              {folder.name}
-            </h2>
-            <p className="text-sm text-slate-500">
-              {openCount} open · {folder.role}
-              {folder.isPrivate ? " · private" : ""}
-            </p>
-          </div>
+      <div className="flex items-start gap-3">
+        <span
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-md"
+          style={{ backgroundColor: folder.color }}
+        >
+          <svg width="22" height="22" viewBox="0 0 14 14" fill="none">
+            <path
+              d="M2 3.5h10M2 7h10M2 10.5h7"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            />
+          </svg>
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="font-[family-name:var(--font-display)] text-3xl font-semibold tracking-tight text-slate-900">
+            {folder.name}
+          </h2>
+          <p className="text-sm text-slate-500">
+            {openCount} open · {folder.role}
+            {folder.isPrivate ? " · private" : ""}
+          </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex shrink-0 items-center gap-0.5 pt-0.5">
           {isOwner && !folder.isPrivate && (
             <button
               type="button"
               onClick={() => setShareOpen(true)}
-              className="rounded-xl bg-white/60 px-3 py-2 text-sm font-medium text-[#007AFF] ring-1 ring-white/70"
+              className="app-text-accent flex h-10 w-10 items-center justify-center rounded-xl active:opacity-60"
+              aria-label="Share list"
+              title="Share"
             >
-              Share
+              <ShareIcon />
             </button>
           )}
-          {isOwner && (
+          {isOwner ? (
             <button
               type="button"
               onClick={deleteList}
-              className="rounded-xl px-3 py-2 text-sm text-red-500 hover:bg-red-50"
+              className="flex h-10 w-10 items-center justify-center rounded-xl text-red-500 active:bg-red-50 active:opacity-60"
+              aria-label="Delete list"
+              title="Delete"
             >
-              Delete
+              <TrashIcon />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={leaveList}
+              className="flex h-10 w-10 items-center justify-center rounded-xl text-red-500 active:bg-red-50 active:opacity-60"
+              aria-label="Leave list"
+              title="Leave"
+            >
+              <LeaveIcon />
             </button>
           )}
         </div>
@@ -316,5 +349,67 @@ export default function FolderDetailPage() {
         onClose={() => setCelebration(null)}
       />
     </div>
+  );
+}
+
+function ShareIcon() {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <path d="m8.59 13.51 6.83 3.98M15.41 6.51l-6.82 3.98" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M3 6h18" />
+      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <path d="m19 6-.87 12.14A2 2 0 0 1 16.14 20H7.86a2 2 0 0 1-1.99-1.86L5 6" />
+      <path d="M10 11v6M14 11v6" />
+    </svg>
+  );
+}
+
+function LeaveIcon() {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M10 17v1a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v1" />
+      <path d="M15 12H3" />
+      <path d="m7 8-4 4 4 4" />
+    </svg>
   );
 }
